@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Menu, User, Settings, LogOut, CreditCard, Map, ShoppingBag, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,13 +13,24 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Link, useLocation } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { auth0Config } from "@/lib/auth0-config";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [location, setLocation] = useLocation();
   
   // Use Auth0 hook to get authentication state and user info
-  const { isAuthenticated, user: auth0User, loginWithRedirect, logout } = useAuth0();
+  const { isAuthenticated, user: auth0User, loginWithRedirect, logout, isLoading, error } = useAuth0();
+
+  // Add logging to track Auth0 state
+  useEffect(() => {
+    console.log("Auth0 Header Status:", { 
+      isAuthenticated, 
+      isLoading, 
+      hasUser: !!auth0User,
+      error: error ? error.message : null
+    });
+  }, [isAuthenticated, isLoading, auth0User, error]);
 
   // Fall back to API data if Auth0 is not being used
   const { data: apiUser } = useQuery({
@@ -34,11 +45,20 @@ export function Header() {
     apiUser;
 
   const handleLogin = () => {
-    loginWithRedirect();
+    console.log("Initiating login with:", auth0Config);
+    loginWithRedirect({
+      authorizationParams: {
+        redirect_uri: auth0Config.redirectUri
+      }
+    });
   };
 
   const handleLogout = () => {
-    logout({ logoutParams: { returnTo: window.location.origin + '/login' } });
+    logout({ 
+      logoutParams: { 
+        returnTo: window.location.origin + '/login' 
+      } 
+    });
   };
 
   return (
