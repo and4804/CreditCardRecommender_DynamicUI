@@ -40,11 +40,24 @@ export async function comparePasswords(provided: string, stored: string): Promis
 // Setup the session middleware
 export function setupSessions(app: Express) {
   // Session configuration
+  // Create session table if it doesn't exist
+  const createSessionTableSQL = `
+    CREATE TABLE IF NOT EXISTS "session" (
+      "sid" varchar NOT NULL COLLATE "default",
+      "sess" json NOT NULL,
+      "expire" timestamp(6) NOT NULL,
+      CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+    )
+  `;
+  
+  pool.query(createSessionTableSQL)
+    .catch(err => console.error('Error creating session table:', err));
+  
   app.use(session({
     store: new PgSession({
       pool,
-      tableName: 'session', // Use the actual table name we created
-      createTableIfMissing: true
+      tableName: 'session', 
+      createTableIfMissing: false // We're manually creating it
     }),
     secret: process.env.SESSION_SECRET || 'cardsavvy-secret-key',
     resave: false,
