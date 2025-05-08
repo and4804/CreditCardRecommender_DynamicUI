@@ -9,21 +9,60 @@ import Login from "@/pages/login";
 import Profile from "@/pages/profile";
 import Settings from "@/pages/settings";
 import Callback from "@/pages/callback";
+import Cards from "@/pages/cards";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+
+// Import ProtectedRoute component
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home}/>
       <Route path="/login" component={Login}/>
-      <Route path="/profile" component={Profile}/>
-      <Route path="/settings" component={Settings}/>
       <Route path="/callback" component={Callback}/>
-      <Route path="/cards" component={() => <div className="min-h-screen p-8"><h1 className="text-2xl font-bold mb-4">My Cards Page</h1><p>This page is under construction</p></div>}/>
-      <Route path="/travel" component={() => <div className="min-h-screen p-8"><h1 className="text-2xl font-bold mb-4">Travel Page</h1><p>This page is under construction</p></div>}/>
-      <Route path="/shopping" component={() => <div className="min-h-screen p-8"><h1 className="text-2xl font-bold mb-4">Shopping Page</h1><p>This page is under construction</p></div>}/>
-      <Route path="/benefits" component={() => <div className="min-h-screen p-8"><h1 className="text-2xl font-bold mb-4">Benefits Page</h1><p>This page is under construction</p></div>}/>
+      
+      {/* Protected Routes */}
+      <Route path="/profile" component={() => (
+        <ProtectedRoute>
+          <Profile />
+        </ProtectedRoute>
+      )}/>
+      <Route path="/settings" component={() => (
+        <ProtectedRoute>
+          <Settings />
+        </ProtectedRoute>
+      )}/>
+      <Route path="/cards" component={() => (
+        <ProtectedRoute>
+          <Cards />
+        </ProtectedRoute>
+      )}/>
+      <Route path="/travel" component={() => (
+        <ProtectedRoute>
+          <div className="min-h-screen p-8">
+            <h1 className="text-2xl font-bold mb-4">Travel Page</h1>
+            <p>This page is under construction</p>
+          </div>
+        </ProtectedRoute>
+      )}/>
+      <Route path="/shopping" component={() => (
+        <ProtectedRoute>
+          <div className="min-h-screen p-8">
+            <h1 className="text-2xl font-bold mb-4">Shopping Page</h1>
+            <p>This page is under construction</p>
+          </div>
+        </ProtectedRoute>
+      )}/>
+      <Route path="/benefits" component={() => (
+        <ProtectedRoute>
+          <div className="min-h-screen p-8">
+            <h1 className="text-2xl font-bold mb-4">Benefits Page</h1>
+            <p>This page is under construction</p>
+          </div>
+        </ProtectedRoute>
+      )}/>
       <Route component={NotFound} />
     </Switch>
   );

@@ -28,6 +28,25 @@ type ContextAnalysis = {
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes
   
+  // Auth0 verification endpoint
+  app.post("/api/auth/verify", async (req: Request, res: Response) => {
+    try {
+      const { token } = req.body;
+      
+      // In a real implementation, you would verify the JWT token from Auth0
+      // For now, we just return success
+      res.json({ 
+        success: true,
+        message: "Token verified successfully" 
+      });
+    } catch (error) {
+      res.status(401).json({ 
+        success: false,
+        message: "Invalid token" 
+      });
+    }
+  });
+  
   // Get current user (for demo, we'll use the first user)
   app.get("/api/user", async (req: Request, res: Response) => {
     const users = Array.from((await storage.getUserByUsername("james.wilson")) ? [await storage.getUserByUsername("james.wilson")] : []);
