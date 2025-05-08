@@ -195,7 +195,7 @@ export function AuthProvider({
   return (
     <AuthContext.Provider
       value={{
-        user,
+        user: user || null,
         isLoading: isUserLoading || loginMutation.isPending || registerMutation.isPending || logoutMutation.isPending,
         isAuthenticated,
         error: userError instanceof Error ? userError : null,
