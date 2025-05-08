@@ -76,10 +76,12 @@ export class MemStorage implements IStorage {
     this.messageIdCounter = 1;
 
     // Initialize with sample data
-    this.initializeSampleData();
+    this.initializeSampleData().catch(error => {
+      console.error("Error initializing sample data:", error);
+    });
   }
 
-  private initializeSampleData() {
+  private async initializeSampleData() {
     // Create sample user
     const user: InsertUser = {
       username: "james.wilson",
@@ -87,7 +89,7 @@ export class MemStorage implements IStorage {
       name: "James Wilson",
       membershipLevel: "Platinum"
     };
-    const createdUser = this.createUser(user);
+    const createdUser = await this.createUser(user);
 
     // Create sample credit cards
     const amexCard: InsertCreditCard = {
@@ -100,7 +102,7 @@ export class MemStorage implements IStorage {
       cardType: "Platinum",
       color: "primary"
     };
-    this.createCreditCard(amexCard);
+    await this.createCreditCard(amexCard);
 
     const chaseCard: InsertCreditCard = {
       userId: createdUser.id,
@@ -112,7 +114,7 @@ export class MemStorage implements IStorage {
       cardType: "Preferred",
       color: "accent"
     };
-    this.createCreditCard(chaseCard);
+    await this.createCreditCard(chaseCard);
 
     const capitalOneCard: InsertCreditCard = {
       userId: createdUser.id,
@@ -124,7 +126,7 @@ export class MemStorage implements IStorage {
       cardType: "Venture",
       color: "gray"
     };
-    this.createCreditCard(capitalOneCard);
+    await this.createCreditCard(capitalOneCard);
 
     // Create sample flights
     const deltaFlight: InsertFlight = {
@@ -143,7 +145,7 @@ export class MemStorage implements IStorage {
         "Premium Economy available"
       ]
     };
-    this.createFlight(deltaFlight);
+    await this.createFlight(deltaFlight);
 
     const unitedFlight: InsertFlight = {
       airline: "United",
@@ -161,7 +163,7 @@ export class MemStorage implements IStorage {
         "Free checked bag with Amex"
       ]
     };
-    this.createFlight(unitedFlight);
+    await this.createFlight(unitedFlight);
 
     const jetBlueFlight: InsertFlight = {
       airline: "JetBlue",
@@ -179,7 +181,7 @@ export class MemStorage implements IStorage {
         "WiFi included with Amex"
       ]
     };
-    this.createFlight(jetBlueFlight);
+    await this.createFlight(jetBlueFlight);
 
     // Create sample hotels
     const langhamHotel: InsertHotel = {
@@ -201,7 +203,7 @@ export class MemStorage implements IStorage {
       ],
       cardExclusiveOffer: "Platinum Card exclusive offer"
     };
-    this.createHotel(langhamHotel);
+    await this.createHotel(langhamHotel);
 
     const mercerHotel: InsertHotel = {
       name: "The Mercer Hotel",
@@ -221,7 +223,7 @@ export class MemStorage implements IStorage {
       ],
       cardExclusiveOffer: "5X points with Amex booking"
     };
-    this.createHotel(mercerHotel);
+    await this.createHotel(mercerHotel);
 
     const standardHotel: InsertHotel = {
       name: "The Standard High Line",
@@ -241,13 +243,13 @@ export class MemStorage implements IStorage {
       ],
       cardExclusiveOffer: "10% Amex statement credit"
     };
-    this.createHotel(standardHotel);
+    await this.createHotel(standardHotel);
 
     // Create sample shopping offers
     const bloomingdalesOffer: InsertShoppingOffer = {
       storeName: "Bloomingdale's",
-      location: "59th St & Lexington Ave",
-      distanceFromHotel: "1.2mi from hotel",
+      location: "59th St & Lexington Ave, New York",
+      distanceFromHotel: "Available online",
       offerType: "percentage",
       offerValue: "15% Back",
       description: "Luxury department store offering designer clothing, accessories, home goods, and beauty products.",
@@ -259,12 +261,12 @@ export class MemStorage implements IStorage {
       validThrough: "June 30, 2023",
       category: "Fashion"
     };
-    this.createShoppingOffer(bloomingdalesOffer);
+    await this.createShoppingOffer(bloomingdalesOffer);
 
     const bhPhotoOffer: InsertShoppingOffer = {
       storeName: "B&H Photo Video",
-      location: "9th Ave & 34th St",
-      distanceFromHotel: "0.8mi from hotel",
+      location: "9th Ave & 34th St, New York",
+      distanceFromHotel: "Available online",
       offerType: "cash",
       offerValue: "$50 Back",
       description: "Premier destination for cameras, computers, home theater equipment, and other electronics.",
@@ -276,41 +278,92 @@ export class MemStorage implements IStorage {
       validThrough: "July 15, 2023",
       category: "Electronics"
     };
-    this.createShoppingOffer(bhPhotoOffer);
+    await this.createShoppingOffer(bhPhotoOffer);
 
-    const elevenMadisonOffer: InsertShoppingOffer = {
-      storeName: "Eleven Madison Park",
-      location: "Madison Ave & 24th St",
-      distanceFromHotel: "0.4mi from hotel",
+    const samsungStoreOffer: InsertShoppingOffer = {
+      storeName: "Samsung Experience Store",
+      location: "Multiple locations across India",
+      distanceFromHotel: "Available online",
       offerType: "percentage",
-      offerValue: "20% Back",
-      description: "Three Michelin-starred fine dining restaurant with seasonal, multi-course tasting menu.",
-      imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4",
+      offerValue: "10% Back",
+      description: "Official Samsung stores with latest products including Galaxy S25 Ultra and other premium smartphones.",
+      imageUrl: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c",
       benefits: [
-        "Receive 20% back as statement credit",
-        "Priority reservations for cardholders"
+        "10% cashback up to ₹5,000 with Chase Freedom",
+        "Additional 1-year warranty with HDFC cards"
       ],
-      validThrough: "June 30, 2023",
-      category: "Dining"
+      validThrough: "August 31, 2023",
+      category: "Electronics"
     };
-    this.createShoppingOffer(elevenMadisonOffer);
+    await this.createShoppingOffer(samsungStoreOffer);
 
-    const broadwayOffer: InsertShoppingOffer = {
-      storeName: "Broadway Show Tickets",
-      location: "Times Square",
-      distanceFromHotel: "1.0mi from hotel",
-      offerType: "points",
-      offerValue: "2X Points",
-      description: "Broadway show tickets for top musicals and plays during your stay in New York.",
-      imageUrl: "https://pixabay.com/get/g8b35b058987c75e24502dc465c7f9f97a5a588f946a4b60ed1a4efd6103f194343c87e22461f0fc9702edfaf6c436e88904c912e3a6b814781ee937c14c86388_1280.jpg",
+    const flipkartOffer: InsertShoppingOffer = {
+      storeName: "Flipkart",
+      location: "Online, India",
+      distanceFromHotel: "Available online",
+      offerType: "cash",
+      offerValue: "₹10,000 Off",
+      description: "India's leading e-commerce marketplace with wide selection of electronics, clothing, and more.",
+      imageUrl: "https://images.unsplash.com/photo-1622560480605-d83c853bc5c3",
       benefits: [
-        "Double points on ticket purchases",
-        "Exclusive presale access"
+        "₹10,000 instant discount on S25 Ultra with ICICI Bank cards",
+        "No-cost EMI options with Citi cards"
       ],
-      validThrough: "During your stay",
-      category: "Entertainment"
+      validThrough: "Limited time offer",
+      category: "Electronics"
     };
-    this.createShoppingOffer(broadwayOffer);
+    await this.createShoppingOffer(flipkartOffer);
+
+    const cromaOffer: InsertShoppingOffer = {
+      storeName: "Croma",
+      location: "Multiple locations across India",
+      distanceFromHotel: "Available online",
+      offerType: "points",
+      offerValue: "5X Points",
+      description: "Indian retail chain for consumer electronics and durables with wide product selection.",
+      imageUrl: "https://images.unsplash.com/photo-1546054454-aa26e2b734c7",
+      benefits: [
+        "5X reward points with American Express cards",
+        "Extended warranty protection on premium electronics"
+      ],
+      validThrough: "July 30, 2023",
+      category: "Electronics"
+    };
+    await this.createShoppingOffer(cromaOffer);
+
+    const amazonIndiaOffer: InsertShoppingOffer = {
+      storeName: "Amazon India",
+      location: "Online, India",
+      distanceFromHotel: "Available online",
+      offerType: "percentage",
+      offerValue: "15% Back",
+      description: "E-commerce giant with vast selection of products including the latest smartphones and electronics.",
+      imageUrl: "https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2",
+      benefits: [
+        "15% instant discount up to ₹7,500 with HDFC cards",
+        "Additional exchange bonus of ₹5,000 on old phones"
+      ],
+      validThrough: "Limited period offer",
+      category: "Electronics"
+    };
+    await this.createShoppingOffer(amazonIndiaOffer);
+
+    const reliance: InsertShoppingOffer = {
+      storeName: "Reliance Digital",
+      location: "Multiple locations across India",
+      distanceFromHotel: "Available online",
+      offerType: "cash",
+      offerValue: "₹8,000 Back",
+      description: "Electronics retail chain offering a wide range of consumer electronics and home appliances.",
+      imageUrl: "https://images.unsplash.com/photo-1601524909162-ae8725290836",
+      benefits: [
+        "Instant cashback of ₹8,000 with Amex cards",
+        "Free premium case worth ₹3,999"
+      ],
+      validThrough: "July 15, 2023",
+      category: "Electronics"
+    };
+    await this.createShoppingOffer(reliance);
 
     // Create initial chat message
     const welcomeMessage: InsertChatMessage = {
@@ -319,7 +372,7 @@ export class MemStorage implements IStorage {
       content: "Hello James! I'm your CardConcierge. How can I help you plan your travel or shopping today? I can help you maximize your credit card benefits.",
       timestamp: new Date().toISOString()
     };
-    this.createChatMessage(welcomeMessage);
+    await this.createChatMessage(welcomeMessage);
   }
 
   // User methods

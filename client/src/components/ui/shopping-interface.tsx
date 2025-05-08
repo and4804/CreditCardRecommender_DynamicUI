@@ -13,7 +13,8 @@ import { useState } from "react";
 
 export function ShoppingInterface() {
   const [sortBy, setSortBy] = useState("highestDiscount");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("Electronics");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: offers, isLoading } = useQuery<ShoppingOffer[]>({
     queryKey: ["/api/shopping-offers", selectedCategory !== "all" ? selectedCategory : null],
@@ -23,17 +24,26 @@ export function ShoppingInterface() {
     setSelectedCategory(category);
   };
 
+  // Filter offers based on search query
+  const filteredOffers = offers?.filter(offer => {
+    if (!searchQuery) return true;
+    return (
+      offer.storeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      offer.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
+
   if (isLoading) {
     return (
       <div className="h-full">
         <div className="bg-[#141A5E] p-4 text-white">
           <div className="flex justify-between items-center">
-            <h2 className="font-sf-pro font-semibold">New York Shopping</h2>
+            <h2 className="font-sf-pro font-semibold">Credit Card Offers</h2>
             <div className="text-xs bg-white text-[#141A5E] px-2 py-1 rounded-full">
-              Card Offers
+              Global Offers
             </div>
           </div>
-          <p className="text-sm opacity-80">Recommended stores based on your travel dates (Jun 15-22)</p>
+          <p className="text-sm opacity-80">Maximize your benefits with these card-exclusive offers</p>
         </div>
         
         <div className="p-4">
@@ -53,15 +63,26 @@ export function ShoppingInterface() {
     <div className="h-full">
       <div className="bg-[#141A5E] p-4 text-white">
         <div className="flex justify-between items-center">
-          <h2 className="font-sf-pro font-semibold">New York Shopping</h2>
+          <h2 className="font-sf-pro font-semibold">Credit Card Offers</h2>
           <div className="text-xs bg-white text-[#141A5E] px-2 py-1 rounded-full">
-            Card Offers
+            Global Offers
           </div>
         </div>
-        <p className="text-sm opacity-80">Recommended stores based on your travel dates (Jun 15-22)</p>
+        <p className="text-sm opacity-80">Maximize your benefits with these card-exclusive offers</p>
       </div>
       
       <div className="p-4">
+        {/* Search Bar */}
+        <div className="mb-4">
+          <input
+            type="text"
+            placeholder="Search for products or stores (e.g. Samsung S25 Ultra)"
+            className="w-full p-2 border border-gray-300 rounded-lg"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      
         {/* Category Filters */}
         <div className="flex flex-wrap items-center gap-3 mb-4 pb-4 border-b">
           <span className="text-sm font-medium">Categories:</span>
@@ -107,9 +128,38 @@ export function ShoppingInterface() {
           </Button>
         </div>
         
+        {/* Samsung S25 Ultra Spotlight */}
+        {selectedCategory === "Electronics" && (
+          <div className="bg-gradient-to-r from-[#1A1F71] to-[#00A4E4] p-4 rounded-lg mb-4 text-white">
+            <div className="flex justify-between items-center">
+              <h3 className="font-sf-pro font-semibold">Samsung S25 Ultra Special Offers</h3>
+              <div className="bg-white text-[#1A1F71] text-xs px-2 py-1 rounded-full">Best Card Deals</div>
+            </div>
+            <p className="text-sm mt-1 mb-3">Compare the best credit card offers for your new smartphone purchase</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div className="bg-white bg-opacity-20 p-2 rounded">
+                <span className="font-medium">Chase Freedom Flex:</span> 5% cashback on electronics purchases, extended warranty
+              </div>
+              <div className="bg-white bg-opacity-20 p-2 rounded">
+                <span className="font-medium">American Express Blue Cash:</span> Special financing, purchase protection
+              </div>
+              <div className="bg-white bg-opacity-20 p-2 rounded">
+                <span className="font-medium">Citi Double Cash Card:</span> 2% cash back on all purchases including your new phone
+              </div>
+              <div className="bg-white bg-opacity-20 p-2 rounded">
+                <span className="font-medium">Discover it Cash Back:</span> First-year cash back match on all purchases
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Results Header */}
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-sf-pro font-medium">Card Offers Near Your Hotel</h3>
+          <h3 className="font-sf-pro font-medium">
+            {searchQuery ? `Search Results for "${searchQuery}"` : 
+             selectedCategory === "all" ? "All Card Offers" : 
+             `${selectedCategory} Card Offers`}
+          </h3>
           <div className="flex items-center">
             <span className="text-sm mr-2">Sort by:</span>
             <Select value={sortBy} onValueChange={setSortBy}>
@@ -118,7 +168,7 @@ export function ShoppingInterface() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="highestDiscount">Highest Discount</SelectItem>
-                <SelectItem value="closestToHotel">Closest to Hotel</SelectItem>
+                <SelectItem value="bestValue">Best Value</SelectItem>
                 <SelectItem value="mostPopular">Most Popular</SelectItem>
               </SelectContent>
             </Select>
@@ -127,7 +177,12 @@ export function ShoppingInterface() {
         
         {/* Store Results */}
         <div className="space-y-4 max-h-[calc(100vh-20rem)] overflow-y-auto scrollbar-thin">
-          {offers?.map((offer) => (
+          {filteredOffers?.length === 0 && (
+            <div className="text-center p-4">
+              <p className="text-gray-500">No offers found matching your search criteria.</p>
+            </div>
+          )}
+          {filteredOffers?.map((offer) => (
             <div key={offer.id} className="border rounded-lg p-4 hover:shadow-md transition cursor-pointer">
               <div className="flex items-start">
                 <div className="w-16 h-16 rounded-lg overflow-hidden mr-4 flex-shrink-0">
