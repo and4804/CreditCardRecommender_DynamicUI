@@ -62,11 +62,26 @@ export default function Callback() {
       })
       .then(data => {
         console.log("Manual verification successful:", data);
-        // If this worked, redirect to home
-        setTimeout(() => setLocation('/'), 1000);
+        
+        // Store the mock user in localStorage to simulate Auth0 session
+        if (data.user) {
+          localStorage.setItem('auth_user', JSON.stringify(data.user));
+          localStorage.setItem('auth_is_authenticated', 'true');
+          
+          // Update status and redirect
+          setStatus("Successfully authenticated! Redirecting...");
+          
+          // Reload the page to apply the authentication
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1000);
+        } else {
+          throw new Error('No user data received');
+        }
       })
       .catch(err => {
         console.error("Manual verification error:", err);
+        setStatus(`Alternative authentication failed: ${err.message}`);
       });
     }
 

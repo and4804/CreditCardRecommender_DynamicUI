@@ -1,16 +1,40 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
 
 interface ProtectedRouteProps {
   children: ReactNode;
 }
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading } = useAuth0();
+  const { isAuthenticated: auth0IsAuthenticated, isLoading: auth0IsLoading } = useAuth0();
   const [, setLocation] = useLocation();
+  
+  // Check for local storage user from manual authentication
+  const [manualAuthenticated, setManualAuthenticated] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Fetch API user as a potential fallback
+  const { data: apiUser, isLoading: apiIsLoading } = useQuery({
+    queryKey: ["/api/user"],
+    staleTime: Infinity,
+  });
+  
+  // On component mount, check if we have a manual auth user in localStorage
+  useEffect(() => {
+    const storedIsAuthenticated = localStorage.getItem("auth_is_authenticated");
+    if (storedIsAuthenticated === "true") {
+      setManualAuthenticated(true);
+    }
+    setIsInitialized(true);
+  }, []);
+  
+  // Combine authentication methods
+  const isAuthenticated = auth0IsAuthenticated || manualAuthenticated || !!apiUser;
+  const isLoading = auth0IsLoading || apiIsLoading || !isInitialized;
 
   if (isLoading) {
     return (

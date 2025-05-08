@@ -19,10 +19,10 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [location, setLocation] = useLocation();
   
-  // Use Auth0 hook to get authentication state and user info
+  // Use Auth0 for authentication
   const { isAuthenticated, user: auth0User, loginWithRedirect, logout, isLoading, error } = useAuth0();
 
-  // Add logging to track Auth0 state
+  // Add logging to track Auth state
   useEffect(() => {
     console.log("Auth0 Header Status:", { 
       isAuthenticated, 
@@ -32,17 +32,38 @@ export function Header() {
     });
   }, [isAuthenticated, isLoading, auth0User, error]);
 
-  // Fall back to API data if Auth0 is not being used
+  // Always fetch API user data - we'll use it as fallback
   const { data: apiUser } = useQuery({
     queryKey: ["/api/user"],
     staleTime: Infinity,
-    enabled: !isAuthenticated, // Only fetch if not authenticated via Auth0
   });
 
-  // Use Auth0 user data if available, otherwise use API user data
-  const user = isAuthenticated ? 
-    (auth0User as { name?: string; picture?: string }) : 
-    apiUser;
+  // Check for local storage user from manual authentication
+  const [manualUser, setManualUser] = useState<any>(null);
+  const [manualAuthenticated, setManualAuthenticated] = useState(false);
+  
+  // On component mount, check if we have a manual auth user in localStorage
+  useEffect(() => {
+    const storedUser = localStorage.getItem("auth_user");
+    const storedIsAuthenticated = localStorage.getItem("auth_is_authenticated");
+    
+    if (storedUser && storedIsAuthenticated === "true") {
+      try {
+        setManualUser(JSON.parse(storedUser));
+        setManualAuthenticated(true);
+      } catch (error) {
+        console.error("Error parsing stored user:", error);
+      }
+    }
+  }, []);
+
+  // Combine all our authentication methods
+  const effectiveIsAuthenticated = isAuthenticated || manualAuthenticated;
+
+  // Use auth0 user if available, otherwise use manual user, finally fall back to API user
+  const user = isAuthenticated ? auth0User : 
+               manualAuthenticated ? manualUser : 
+               apiUser;
 
   const handleLogin = () => {
     console.log("Initiating login with:", auth0Config);
@@ -54,11 +75,20 @@ export function Header() {
   };
 
   const handleLogout = () => {
-    logout({ 
-      logoutParams: { 
-        returnTo: window.location.origin + '/login' 
-      } 
-    });
+    // Clear any local storage auth
+    localStorage.removeItem("auth_user");
+    localStorage.removeItem("auth_is_authenticated");
+    setManualUser(null);
+    setManualAuthenticated(false);
+    
+    // Also logout from Auth0 if authenticated there
+    if (isAuthenticated) {
+      logout({ 
+        logoutParams: { 
+          returnTo: window.location.origin
+        } 
+      });
+    }
   };
 
   return (
@@ -111,7 +141,7 @@ export function Header() {
         </div>
         
         <div className="flex items-center space-x-4">
-          {isAuthenticated ? (
+          {effectiveIsAuthenticated ? (
             <>
               <div className="hidden md:block">
                 <span className="text-sm mr-2">{user?.name || "Guest"}</span>
