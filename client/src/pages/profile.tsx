@@ -180,7 +180,7 @@ export default function Profile() {
                           </div>
                           <div className="flex-1">
                             <h3 className="font-medium">{card.issuer} {card.cardName}</h3>
-                            <p className="text-sm text-gray-500">**** **** **** {card.lastFourDigits}</p>
+                            <p className="text-sm text-gray-500">**** **** **** {card.cardNumber.slice(-4)}</p>
                           </div>
                           <Button variant="outline" size="sm">View Details</Button>
                         </div>
