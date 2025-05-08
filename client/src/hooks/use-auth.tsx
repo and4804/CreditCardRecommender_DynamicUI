@@ -32,6 +32,7 @@ interface RegisterData {
   email: string;
   password: string;
   pictureUrl?: string;
+  membershipLevel?: string;
 }
 
 // Login data type

@@ -9,6 +9,13 @@ import { users, sessions, InsertUser, User } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
+// Declare session for TypeScript
+declare module 'express-session' {
+  interface SessionData {
+    userId: number;
+  }
+}
+
 // Promisify the scrypt function
 const scryptAsync = promisify(scrypt);
 
@@ -36,7 +43,7 @@ export function setupSessions(app: Express) {
   app.use(session({
     store: new PgSession({
       pool,
-      tableName: 'sessions',
+      tableName: 'session', // Use the actual table name we created
       createTableIfMissing: true
     }),
     secret: process.env.SESSION_SECRET || 'cardsavvy-secret-key',
