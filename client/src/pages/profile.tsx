@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery } from '@tanstack/react-query';
 import { CreditCard } from '@shared/schema';
+import { AddCardDialog } from '@/components/ui/add-card-dialog';
 
 export default function Profile() {
   const { user, isAuthenticated, isLoading, logout } = useAuth0();
@@ -164,11 +165,18 @@ export default function Profile() {
             
             <TabsContent value="cards" className="mt-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Your Credit Cards</CardTitle>
-                  <CardDescription>
-                    Manage your linked credit cards and see their benefits.
-                  </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Your Credit Cards</CardTitle>
+                    <CardDescription>
+                      Manage your linked credit cards and see their benefits.
+                    </CardDescription>
+                  </div>
+                  <AddCardDialog>
+                    <Button size="sm" className="bg-[#1A1F71] hover:bg-[#141A5E]">
+                      Add Card
+                    </Button>
+                  </AddCardDialog>
                 </CardHeader>
                 <CardContent>
                   {cards && cards.length > 0 ? (
@@ -189,7 +197,9 @@ export default function Profile() {
                   ) : (
                     <div className="text-center py-8">
                       <p className="text-gray-500 mb-4">You don't have any credit cards linked yet.</p>
-                      <Button>Add a Credit Card</Button>
+                      <AddCardDialog>
+                        <Button className="bg-[#1A1F71] hover:bg-[#141A5E]">Add a Credit Card</Button>
+                      </AddCardDialog>
                     </div>
                   )}
                 </CardContent>
