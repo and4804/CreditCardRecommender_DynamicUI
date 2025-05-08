@@ -33,17 +33,35 @@ export type CreditCard = typeof creditCards.$inferSelect;
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
-  membershipLevel: text("membership_level").notNull(),
+  membershipLevel: text("membership_level").notNull().default("Premium"),
+  pictureUrl: text("picture_url"),
+  createdAt: text("created_at").notNull().default(new Date().toISOString()),
+  lastLogin: text("last_login")
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
+  email: true,
   password: true,
   name: true,
+  pictureUrl: true,
   membershipLevel: true,
 });
+
+// Sessions table for authentication
+export const sessions = pgTable("sessions", {
+  id: text("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: text("expires_at").notNull(),
+  createdAt: text("created_at").notNull().default(new Date().toISOString()),
+});
+
+export const insertSessionSchema = createInsertSchema(sessions);
+export type InsertSession = z.infer<typeof insertSessionSchema>;
+export type Session = typeof sessions.$inferSelect;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
