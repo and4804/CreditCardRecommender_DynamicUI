@@ -29,7 +29,9 @@ export function Header() {
   });
 
   // Use Auth0 user data if available, otherwise use API user data
-  const user = isAuthenticated ? auth0User : apiUser;
+  const user = isAuthenticated ? 
+    (auth0User as { name?: string; picture?: string }) : 
+    apiUser;
 
   const handleLogin = () => {
     loginWithRedirect();
