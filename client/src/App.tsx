@@ -10,6 +10,7 @@ import Profile from "@/pages/profile";
 import Settings from "@/pages/settings";
 import Callback from "@/pages/callback";
 import Cards from "@/pages/cards";
+import Benefits from "@/pages/benefits";
 import AuthPage from "@/pages/auth-page";
 import { HeaderNew } from "@/components/layout/header-new";
 import { Footer } from "@/components/layout/footer";
