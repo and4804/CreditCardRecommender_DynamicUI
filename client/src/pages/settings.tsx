@@ -1,16 +1,86 @@
-import React from 'react';
+import { useState } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 import { Link } from 'wouter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Settings() {
-  const { isAuthenticated, isLoading } = useAuth0();
+  const { user, isAuthenticated, isLoading, logout } = useAuth0();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Example settings state
+  const [settings, setSettings] = useState({
+    notifications: {
+      email: true,
+      offers: true,
+      security: true,
+      marketing: false
+    },
+    preferences: {
+      travelAlerts: true,
+      newCardOffers: true,
+      shoppingDeals: true,
+      partnerOffers: false
+    },
+    accessibility: {
+      highContrast: false,
+      largeText: false
+    }
+  });
+
+  const handleNotificationChange = (key: keyof typeof settings.notifications) => {
+    setSettings({
+      ...settings,
+      notifications: {
+        ...settings.notifications,
+        [key]: !settings.notifications[key]
+      }
+    });
+  };
+
+  const handlePreferenceChange = (key: keyof typeof settings.preferences) => {
+    setSettings({
+      ...settings,
+      preferences: {
+        ...settings.preferences,
+        [key]: !settings.preferences[key]
+      }
+    });
+  };
+
+  const handleAccessibilityChange = (key: keyof typeof settings.accessibility) => {
+    setSettings({
+      ...settings,
+      accessibility: {
+        ...settings.accessibility,
+        [key]: !settings.accessibility[key]
+      }
+    });
+  };
+
+  const handleSaveSettings = () => {
+    setIsSaving(true);
+    // Simulate API call
+    setTimeout(() => {
+      setIsSaving(false);
+      toast({
+        title: 'Settings Saved',
+        description: 'Your preferences have been updated successfully.',
+      });
+    }, 1000);
+  };
+
+  const handleLogout = () => {
+    logout({ logoutParams: { returnTo: window.location.origin + '/login' } });
+  };
 
   if (isLoading) {
     return (
@@ -46,211 +116,335 @@ export default function Settings() {
   }
 
   return (
-    <div className="container max-w-4xl py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Account Settings</h1>
-        <p className="text-muted-foreground">Manage your account preferences and settings</p>
+    <div className="container max-w-6xl py-8">
+      <div className="flex flex-col md:flex-row gap-8">
+        <div className="w-full md:w-1/3">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-center">
+                <Avatar className="h-24 w-24">
+                  <AvatarImage src={user?.picture} alt={user?.name} />
+                  <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
+                </Avatar>
+              </div>
+              <CardTitle className="text-center mt-4">{user?.name}</CardTitle>
+              <CardDescription className="text-center">{user?.email}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link href="/">Dashboard</Link>
+                  </Button>
+                </div>
+                <div>
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link href="/profile">My Profile</Link>
+                  </Button>
+                </div>
+                <Separator />
+                <div>
+                  <Button variant="outline" className="w-full text-red-500" onClick={handleLogout}>
+                    Sign Out
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div className="w-full md:w-2/3">
+          <Tabs defaultValue="general">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="notifications">Notifications</TabsTrigger>
+              <TabsTrigger value="security">Security</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="general" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Account Settings</CardTitle>
+                  <CardDescription>
+                    Manage your account information and preferences.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Personal Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input id="name" defaultValue={user?.name || ''} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email Address</Label>
+                        <Input id="email" type="email" defaultValue={user?.email || ''} disabled />
+                        <p className="text-xs text-gray-500">Email cannot be changed</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Preferences</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="travel-alerts">Travel Alerts</Label>
+                          <p className="text-sm text-gray-500">Receive alerts about flight deals and discounts</p>
+                        </div>
+                        <Switch 
+                          id="travel-alerts" 
+                          checked={settings.preferences.travelAlerts}
+                          onCheckedChange={() => handlePreferenceChange('travelAlerts')}
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="new-card-offers">New Card Offers</Label>
+                          <p className="text-sm text-gray-500">Get notified about new credit card offers</p>
+                        </div>
+                        <Switch 
+                          id="new-card-offers" 
+                          checked={settings.preferences.newCardOffers}
+                          onCheckedChange={() => handlePreferenceChange('newCardOffers')}
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="shopping-deals">Shopping Deals</Label>
+                          <p className="text-sm text-gray-500">Receive shopping offers and deals</p>
+                        </div>
+                        <Switch 
+                          id="shopping-deals" 
+                          checked={settings.preferences.shoppingDeals}
+                          onCheckedChange={() => handlePreferenceChange('shoppingDeals')}
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="partner-offers">Partner Offers</Label>
+                          <p className="text-sm text-gray-500">Get promotions from our partners</p>
+                        </div>
+                        <Switch 
+                          id="partner-offers" 
+                          checked={settings.preferences.partnerOffers}
+                          onCheckedChange={() => handlePreferenceChange('partnerOffers')}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Accessibility</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="high-contrast">High Contrast Mode</Label>
+                          <p className="text-sm text-gray-500">Increase contrast for better visibility</p>
+                        </div>
+                        <Switch 
+                          id="high-contrast" 
+                          checked={settings.accessibility.highContrast}
+                          onCheckedChange={() => handleAccessibilityChange('highContrast')}
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="large-text">Large Text</Label>
+                          <p className="text-sm text-gray-500">Increase text size throughout the application</p>
+                        </div>
+                        <Switch 
+                          id="large-text" 
+                          checked={settings.accessibility.largeText}
+                          onCheckedChange={() => handleAccessibilityChange('largeText')}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={handleSaveSettings} 
+                      className="bg-[#1A1F71] hover:bg-[#141A5E]"
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <>
+                          <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                          Saving...
+                        </>
+                      ) : "Save Changes"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="notifications" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Notification Settings</CardTitle>
+                  <CardDescription>
+                    Control how and when you receive notifications.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Email Notifications</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="email-notifications">Email Notifications</Label>
+                          <p className="text-sm text-gray-500">Receive notifications via email</p>
+                        </div>
+                        <Switch 
+                          id="email-notifications" 
+                          checked={settings.notifications.email}
+                          onCheckedChange={() => handleNotificationChange('email')}
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="offer-notifications">Offer Notifications</Label>
+                          <p className="text-sm text-gray-500">Get notified about new offers and rewards</p>
+                        </div>
+                        <Switch 
+                          id="offer-notifications" 
+                          checked={settings.notifications.offers}
+                          onCheckedChange={() => handleNotificationChange('offers')}
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="security-notifications">Security Alerts</Label>
+                          <p className="text-sm text-gray-500">Receive notifications about security events</p>
+                        </div>
+                        <Switch 
+                          id="security-notifications" 
+                          checked={settings.notifications.security}
+                          onCheckedChange={() => handleNotificationChange('security')}
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="marketing-emails">Marketing Emails</Label>
+                          <p className="text-sm text-gray-500">Receive promotional and marketing emails</p>
+                        </div>
+                        <Switch 
+                          id="marketing-emails" 
+                          checked={settings.notifications.marketing}
+                          onCheckedChange={() => handleNotificationChange('marketing')}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={handleSaveSettings} 
+                      className="bg-[#1A1F71] hover:bg-[#141A5E]"
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <>
+                          <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                          Saving...
+                        </>
+                      ) : "Save Changes"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="security" className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Security Settings</CardTitle>
+                  <CardDescription>
+                    Manage your account security and privacy.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Password</h3>
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="current-password">Current Password</Label>
+                        <Input id="current-password" type="password" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="new-password">New Password</Label>
+                        <Input id="new-password" type="password" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-password">Confirm New Password</Label>
+                        <Input id="confirm-password" type="password" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Two-Factor Authentication</h3>
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-500">Add an extra layer of security to your account by enabling two-factor authentication.</p>
+                      <Button variant="outline">Enable Two-Factor Authentication</Button>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Sessions</h3>
+                    <div className="space-y-3">
+                      <p className="text-sm text-gray-500">Manage your active sessions and sign out from other devices.</p>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">Current Session</p>
+                            <p className="text-sm text-gray-500">Web Browser • {new Date().toLocaleDateString()}</p>
+                          </div>
+                          <span className="text-sm bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>
+                        </div>
+                      </div>
+                      <Button variant="outline" className="w-full text-red-500">Sign Out From All Other Devices</Button>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end">
+                    <Button 
+                      onClick={handleSaveSettings} 
+                      className="bg-[#1A1F71] hover:bg-[#141A5E]"
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <>
+                          <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                          Saving...
+                        </>
+                      ) : "Save Changes"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
-      
-      <Tabs defaultValue="profile">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="preferences">Preferences</TabsTrigger>
-          <TabsTrigger value="privacy">Privacy</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="profile" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>
-                Update your profile information and personal details.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input id="firstName" placeholder="First Name" defaultValue="James" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" placeholder="Last Name" defaultValue="Wilson" />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input id="email" type="email" placeholder="Email" defaultValue="james.wilson@example.com" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" placeholder="Phone Number" defaultValue="+91 98765 43210" />
-              </div>
-              
-              <div className="pt-4">
-                <Button className="bg-[#1A1F71] hover:bg-[#141A5E]">
-                  Save Changes
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="notifications" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Settings</CardTitle>
-              <CardDescription>
-                Configure how and when you receive notifications.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">Email Notifications</h3>
-                  <p className="text-sm text-muted-foreground">Receive email updates about your account</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">Card Recommendations</h3>
-                  <p className="text-sm text-muted-foreground">Get notified about new card offers</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">Travel Deals</h3>
-                  <p className="text-sm text-muted-foreground">Special travel deals based on your cards</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">Shopping Offers</h3>
-                  <p className="text-sm text-muted-foreground">Receive notifications about shopping discounts</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              
-              <div className="pt-4">
-                <Button className="bg-[#1A1F71] hover:bg-[#141A5E]">
-                  Save Preferences
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="preferences" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>User Preferences</CardTitle>
-              <CardDescription>
-                Customize your experience with CardSavvy.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="currency">Default Currency</Label>
-                <Select defaultValue="inr">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select currency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="inr">Indian Rupee (₹)</SelectItem>
-                    <SelectItem value="usd">US Dollar ($)</SelectItem>
-                    <SelectItem value="eur">Euro (€)</SelectItem>
-                    <SelectItem value="gbp">British Pound (£)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="preferredCard">Preferred Credit Card</Label>
-                <Select defaultValue="hdfc">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select preferred card" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="hdfc">HDFC Infinia</SelectItem>
-                    <SelectItem value="icici">ICICI Emeralde</SelectItem>
-                    <SelectItem value="sbi">SBI Elite</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">Dark Mode</h3>
-                  <p className="text-sm text-muted-foreground">Use dark theme for the interface</p>
-                </div>
-                <Switch />
-              </div>
-              
-              <div className="pt-4">
-                <Button className="bg-[#1A1F71] hover:bg-[#141A5E]">
-                  Save Preferences
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="privacy" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Privacy Settings</CardTitle>
-              <CardDescription>
-                Manage your privacy and data sharing preferences.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">Data Collection</h3>
-                  <p className="text-sm text-muted-foreground">Allow us to collect usage data to improve your experience</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">Personalized Recommendations</h3>
-                  <p className="text-sm text-muted-foreground">Enable AI-powered recommendations based on your usage</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">Marketing Communications</h3>
-                  <p className="text-sm text-muted-foreground">Receive promotional emails and offers</p>
-                </div>
-                <Switch />
-              </div>
-              
-              <div className="pt-4">
-                <div className="flex flex-col space-y-2">
-                  <Button className="bg-[#1A1F71] hover:bg-[#141A5E]">
-                    Save Privacy Settings
-                  </Button>
-                  <Button variant="outline" className="border-red-300 text-red-500 hover:bg-red-50">
-                    Delete Account
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }

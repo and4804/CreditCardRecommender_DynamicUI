@@ -88,8 +88,10 @@ export function AddCardDialog({ children, trigger }: AddCardDialogProps) {
       );
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+    onSuccess: async () => {
+      // Force immediate invalidation and refetch
+      await queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/cards"] });
       setOpen(false);
       form.reset();
       toast({
