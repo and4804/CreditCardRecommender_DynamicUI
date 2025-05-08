@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from 'wouter';
+import { auth0Config } from '@/lib/auth0-config';
 
 export default function Login() {
   const { loginWithRedirect, isAuthenticated, isLoading } = useAuth0();
@@ -31,9 +32,12 @@ export default function Login() {
   }
 
   const handleLogin = async () => {
+    // Log authentication attempt
+    console.log("Attempting Auth0 login with redirect URI:", auth0Config.redirectUri);
+    
     await loginWithRedirect({
       authorizationParams: {
-        redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI
+        redirect_uri: auth0Config.redirectUri
       }
     });
   };
