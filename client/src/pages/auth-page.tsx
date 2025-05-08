@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,11 +65,12 @@ export default function AuthPage() {
   const { login, register, isLoading, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
-  // If already authenticated, redirect to home
-  if (isAuthenticated) {
-    setLocation("/");
-    return null;
-  }
+  // Use useEffect for navigation instead of conditional rendering
+  useEffect(() => {
+    if (isAuthenticated) {
+      setLocation("/");
+    }
+  }, [isAuthenticated, setLocation]);
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
