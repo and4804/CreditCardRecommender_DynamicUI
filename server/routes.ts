@@ -103,6 +103,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(cards);
   });
   
+  // Add a credit card
+  app.post("/api/cards", async (req: Request, res: Response) => {
+    try {
+      // For demo purposes, use userId 1 if not provided
+      const userId = req.body.userId || 1;
+      
+      // Create the credit card
+      const newCard = await storage.createCreditCard({
+        userId,
+        cardName: req.body.cardName,
+        issuer: req.body.issuer,
+        cardNumber: req.body.cardNumber,
+        pointsBalance: req.body.pointsBalance,
+        expireDate: req.body.expireDate,
+        cardType: req.body.cardType,
+        color: req.body.color || "primary"
+      });
+      
+      res.status(201).json(newCard);
+    } catch (error) {
+      console.error("Error creating credit card:", error);
+      res.status(400).json({ 
+        message: "Failed to create credit card", 
+        error: (error as Error).message 
+      });
+    }
+  });
+  
   // Get flights
   app.get("/api/flights", async (req: Request, res: Response) => {
     const flights = await storage.getFlights();

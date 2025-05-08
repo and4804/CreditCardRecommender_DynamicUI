@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, CreditCard, Zap, Gift, BarChart3 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { AddCardDialog } from '@/components/ui/add-card-dialog';
 
 export default function Cards() {
   const [activeTab, setActiveTab] = useState('all');
@@ -32,9 +33,11 @@ export default function Cards() {
           <h1 className="text-3xl font-bold">My Credit Cards</h1>
           <p className="text-gray-500">Manage your cards and maximize your benefits</p>
         </div>
-        <Button className="mt-4 md:mt-0 bg-[#1A1F71] hover:bg-[#141A5E]">
-          <PlusCircle className="mr-2 h-4 w-4" /> Add New Card
-        </Button>
+        <AddCardDialog>
+          <Button className="mt-4 md:mt-0 bg-[#1A1F71] hover:bg-[#141A5E]">
+            <PlusCircle className="mr-2 h-4 w-4" /> Add New Card
+          </Button>
+        </AddCardDialog>
       </div>
 
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -81,18 +84,20 @@ export default function Cards() {
               </Card>
             ))}
             
-            <Card className="border-dashed border-2 border-gray-200 bg-gray-50">
-              <CardContent className="flex flex-col items-center justify-center h-full py-10">
-                <div className="rounded-full bg-gray-100 p-3 mb-4">
-                  <PlusCircle className="h-6 w-6 text-gray-400" />
-                </div>
-                <h3 className="font-medium mb-1">Add a New Card</h3>
-                <p className="text-sm text-gray-500 text-center mb-4">Unlock more rewards and benefits</p>
-                <Button variant="outline" size="sm">
-                  Add Card
-                </Button>
-              </CardContent>
-            </Card>
+            <AddCardDialog>
+              <Card className="border-dashed border-2 border-gray-200 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors">
+                <CardContent className="flex flex-col items-center justify-center h-full py-10">
+                  <div className="rounded-full bg-gray-100 p-3 mb-4">
+                    <PlusCircle className="h-6 w-6 text-gray-400" />
+                  </div>
+                  <h3 className="font-medium mb-1">Add a New Card</h3>
+                  <p className="text-sm text-gray-500 text-center mb-4">Unlock more rewards and benefits</p>
+                  <Button variant="outline" size="sm">
+                    Add Card
+                  </Button>
+                </CardContent>
+              </Card>
+            </AddCardDialog>
           </div>
           
           <div className="bg-[#f8fafc] rounded-lg p-6">
