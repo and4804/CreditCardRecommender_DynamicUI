@@ -13,9 +13,11 @@ import { AddCardDialog } from '@/components/ui/add-card-dialog';
 export default function Profile() {
   const { user, isAuthenticated, isLoading, logout } = useAuth0();
 
-  const { data: cards } = useQuery<CreditCard[]>({
+  const { data: cards, refetch } = useQuery<CreditCard[]>({
     queryKey: ['/api/cards'],
     enabled: isAuthenticated,
+    refetchOnWindowFocus: true,
+    staleTime: 1000, // Consider data stale after 1 second
   });
 
   const handleLogout = () => {

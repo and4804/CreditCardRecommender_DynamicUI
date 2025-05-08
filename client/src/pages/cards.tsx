@@ -11,8 +11,10 @@ import { AddCardDialog } from '@/components/ui/add-card-dialog';
 export default function Cards() {
   const [activeTab, setActiveTab] = useState('all');
   
-  const { data: cards, isLoading } = useQuery<CardType[]>({
+  const { data: cards, isLoading, refetch } = useQuery<CardType[]>({
     queryKey: ['/api/cards'],
+    refetchOnWindowFocus: true,
+    staleTime: 1000, // Consider data stale after 1 second
   });
 
   if (isLoading) {
