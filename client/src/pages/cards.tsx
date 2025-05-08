@@ -10,23 +10,28 @@ import { AddCardDialog } from '@/components/ui/add-card-dialog';
 
 export default function Cards() {
   const [activeTab, setActiveTab] = useState('all');
-  const [refreshKey, setRefreshKey] = useState(0); // Add key for forcing refresh
+  // Use a single refresh trigger that doesn't auto-update
+  const [refreshKey, setRefreshKey] = useState(0);
   
-  // Use React's useEffect to refresh the query periodically
+  // Manual refresh function
+  const manualRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+  };
+  
+  // This effect will run once when the component mounts
   useEffect(() => {
-    // Force refresh every 2 seconds
-    const interval = setInterval(() => {
-      setRefreshKey(prev => prev + 1);
-    }, 2000);
+    // Force a single refresh when component mounts
+    const timeout = setTimeout(() => {
+      manualRefresh();
+    }, 500);
     
-    return () => clearInterval(interval);
+    return () => clearTimeout(timeout);
   }, []);
   
   const { data: cards, isLoading, refetch } = useQuery<CardType[]>({
-    queryKey: ['/api/cards', refreshKey], // Add refreshKey to query key
+    queryKey: ['/api/cards', refreshKey],
     refetchOnWindowFocus: true,
-    staleTime: 0, // Consider data stale immediately
-    refetchInterval: 1000, // Refetch every second
+    staleTime: 5000, // Consider data stale after 5 seconds
   });
 
   if (isLoading) {
