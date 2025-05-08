@@ -102,6 +102,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get chat history for context
       const chatHistory = await storage.getChatMessages(userId);
       
+      // Get user's credit cards to provide in context
+      const userCards = await storage.getCreditCards(userId);
+      const cardContext = userCards.map(card => 
+        `${card.cardName} by ${card.issuer} (${card.cardType}): Points balance: ${card.pointsBalance}, Expires: ${card.expireDate}`
+      ).join('\n');
+      
       // Analyze message context using OpenAI
       const contextAnalysis = await analyzeMessageContext(req.body.message, chatHistory);
       
@@ -109,12 +115,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let aiResponseText = "";
       
       try {
-        // Create a dynamic system prompt based on the conversation context
+        // Create a dynamic system prompt based on the conversation context and user's cards
         let systemPrompt = `You are CardConcierge, an AI-powered travel and shopping assistant that helps users maximize their credit card benefits.
         Your goal is to create a conversational, step-by-step planning experience that collects all necessary information.
         
         Context: ${contextAnalysis.context}
         Intent: ${contextAnalysis.intent}
+        
+        THE USER HAS THE FOLLOWING CREDIT CARDS:
+        ${cardContext}
+        
+        MAKE RECOMMENDATIONS BASED ON THESE SPECIFIC CARDS. Reference the actual cards by name in your responses.
         
         IMPORTANT CONVERSATION GUIDELINES:
         
@@ -122,23 +133,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
            - If user hasn't specified travel dates, ask for them
            - If user hasn't specified number of passengers, ask for them
            - If user hasn't specified preferred time of day, ask for preferences
-           - After collecting all necessary flight details, suggest the best credit card to use
+           - After collecting all necessary flight details, suggest the best credit card from the user's cards to use
            - After completing flight conversation, ask if they need hotel recommendations for their destination
            
         2. For HOTEL bookings:
            - If user hasn't specified check-in/check-out dates, ask for them
            - If user hasn't specified number of guests, ask for them
            - If user hasn't specified any preferences (area, amenities), ask for them
-           - After collecting all necessary hotel details, suggest the best credit card to use
+           - After collecting all necessary hotel details, suggest the best credit card from the user's cards to use
            - After hotel conversation, ask if they need shopping or dining recommendations for their destination
            
         3. For SHOPPING assistance:
            - If user is looking for a specific product, ask for details about their preferences
            - If user hasn't specified a budget, ask for a range
-           - After understanding their shopping needs, recommend the best credit card to maximize rewards
+           - After understanding their shopping needs, recommend the best credit card from the user's cards to maximize rewards
            
         Always maintain a helpful, conversational tone. Ask one question at a time to avoid overwhelming the user.
-        After completing one stage of planning, guide them to the next logical step in their journey.`;
+        After completing one stage of planning, guide them to the next logical step in their journey.
+        
+        Remember that this user is from India and your recommendations should be tailored for Indian credit cards and traveling from India.`;
 
         const response = await openai.chat.completions.create({
           model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -194,7 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const welcomeMessage = insertChatMessageSchema.parse({
       userId,
       role: "assistant",
-      content: "Hello James! I'm your CardConcierge. How can I help you plan your travel or shopping today? I can help you maximize your credit card benefits.",
+      content: "Hello James! I'm your CardConcierge. I see you have premium Indian credit cards including HDFC Infinia, ICICI Emeralde, and SBI Elite. How can I help you maximize your card benefits for travel or shopping today? Would you like recommendations for flights, hotels, or perhaps help finding the best deals on electronics?",
       timestamp: new Date().toISOString()
     });
     

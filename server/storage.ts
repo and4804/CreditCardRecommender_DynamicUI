@@ -91,159 +91,161 @@ export class MemStorage implements IStorage {
     };
     const createdUser = await this.createUser(user);
 
-    // Create sample credit cards
-    const amexCard: InsertCreditCard = {
+    // Create sample Indian credit cards
+    const hdfcCard: InsertCreditCard = {
       userId: createdUser.id,
-      cardName: "Platinum Card",
-      issuer: "American Express",
+      cardName: "Infinia",
+      issuer: "HDFC Bank",
       cardNumber: "•••• •••• •••• 4578",
       pointsBalance: 78450,
       expireDate: "09/26",
-      cardType: "Platinum",
+      cardType: "Signature",
       color: "primary"
     };
-    await this.createCreditCard(amexCard);
+    await this.createCreditCard(hdfcCard);
 
-    const chaseCard: InsertCreditCard = {
+    const iciciCard: InsertCreditCard = {
       userId: createdUser.id,
-      cardName: "Sapphire Preferred",
-      issuer: "Chase",
+      cardName: "Emeralde",
+      issuer: "ICICI Bank",
       cardNumber: "•••• •••• •••• 1236",
       pointsBalance: 43820,
       expireDate: "11/24",
-      cardType: "Preferred",
+      cardType: "Signature",
       color: "accent"
     };
-    await this.createCreditCard(chaseCard);
+    await this.createCreditCard(iciciCard);
 
-    const capitalOneCard: InsertCreditCard = {
+    const sbiCard: InsertCreditCard = {
       userId: createdUser.id,
-      cardName: "Venture X",
-      issuer: "Capital One",
+      cardName: "Elite",
+      issuer: "SBI Card",
       cardNumber: "•••• •••• •••• 7892",
       pointsBalance: 92150,
       expireDate: "03/25",
-      cardType: "Venture",
+      cardType: "Signature",
       color: "gray"
     };
-    await this.createCreditCard(capitalOneCard);
+    await this.createCreditCard(sbiCard);
 
-    // Create sample flights
-    const deltaFlight: InsertFlight = {
-      airline: "Delta",
-      departureTime: "6:30 AM",
-      departureAirport: "SFO",
-      arrivalTime: "3:15 PM",
-      arrivalAirport: "JFK",
-      duration: "5h 45m",
+    // Create sample flights with Indian airports and airlines
+    const airIndiaFlight: InsertFlight = {
+      airline: "Air India",
+      departureTime: "4:30 AM",
+      departureAirport: "BOM",
+      arrivalTime: "6:15 AM",
+      arrivalAirport: "DXB",
+      duration: "3h 15m",
       isNonstop: true,
-      pointsRequired: 60500,
-      cashPrice: 650,
+      pointsRequired: 38500,
+      cashPrice: 22800, // ₹22,800
       rating: 3.5,
       cardBenefits: [
-        "Amex 3X Points",
-        "Premium Economy available"
+        "4X HDFC Reward Points",
+        "Complimentary meal + beverage"
       ]
     };
-    await this.createFlight(deltaFlight);
+    await this.createFlight(airIndiaFlight);
 
-    const unitedFlight: InsertFlight = {
-      airline: "United",
-      departureTime: "8:15 AM",
-      departureAirport: "SFO",
-      arrivalTime: "4:45 PM",
-      arrivalAirport: "EWR",
-      duration: "5h 30m",
+    const indigoFlight: InsertFlight = {
+      airline: "IndiGo",
+      departureTime: "9:40 AM",
+      departureAirport: "BOM",
+      arrivalTime: "11:25 AM",
+      arrivalAirport: "DXB",
+      duration: "3h 15m",
       isNonstop: true,
-      pointsRequired: 55000,
-      cashPrice: 590,
+      pointsRequired: 25000,
+      cashPrice: 18500, // ₹18,500
       rating: 4.0,
       cardBenefits: [
-        "Priority Boarding",
-        "Free checked bag with Amex"
+        "Complimentary Seat Selection",
+        "5% cashback with ICICI cards"
       ]
     };
-    await this.createFlight(unitedFlight);
+    await this.createFlight(indigoFlight);
 
-    const jetBlueFlight: InsertFlight = {
-      airline: "JetBlue",
-      departureTime: "1:10 PM",
-      departureAirport: "SFO",
-      arrivalTime: "10:20 PM",
-      arrivalAirport: "JFK",
-      duration: "6h 10m",
+    const vistara: InsertFlight = {
+      airline: "Vistara",
+      departureTime: "7:15 PM",
+      departureAirport: "BOM",
+      arrivalTime: "9:05 PM",
+      arrivalAirport: "DXB",
+      duration: "3h 20m",
       isNonstop: true,
-      pointsRequired: 48000,
-      cashPrice: 510,
+      pointsRequired: 32000,
+      cashPrice: 24600, // ₹24,600
       rating: 4.5,
       cardBenefits: [
-        "$50 Statement Credit",
-        "WiFi included with Amex"
+        "10% off with SBI Elite Card",
+        "Club Vistara points bonus"
       ]
     };
-    await this.createFlight(jetBlueFlight);
+    await this.createFlight(vistara);
 
-    // Create sample hotels
-    const langhamHotel: InsertHotel = {
-      name: "The Langham New York",
-      location: "Midtown Manhattan",
-      area: "Manhattan",
+    // Create sample Dubai hotels for Indian travelers
+    const burjAlArabHotel: InsertHotel = {
+      name: "Burj Al Arab Jumeirah",
+      location: "Jumeirah Beach Road",
+      area: "Jumeirah",
       rating: 5.0,
-      reviewCount: 324,
-      pricePerNight: 450,
-      totalPrice: 3150,
-      pointsEarned: 15750,
-      description: "Luxury 5-star hotel with spacious rooms and acclaimed restaurant. Walking distance to major attractions.",
-      imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945",
+      reviewCount: 876,
+      pricePerNight: 75000, // ₹75,000
+      totalPrice: 525000,   // ₹525,000 for 7 nights
+      pointsEarned: 157500,
+      description: "Iconic sail-shaped luxury hotel with stunning Arabian Gulf views. Features private beach access and butler service.",
+      imageUrl: "https://images.unsplash.com/photo-1582719508461-905c673771fd",
       benefits: [
-        "$100 property credit",
+        "15% off on spa treatments",
+        "Complimentary airport transfers",
         "Room upgrade when available",
-        "Noon check-in",
-        "Free breakfast for two"
+        "Free breakfast buffet"
       ],
-      cardExclusiveOffer: "Platinum Card exclusive offer"
+      cardExclusiveOffer: "Earn 10X HDFC Infinia Reward Points"
     };
-    await this.createHotel(langhamHotel);
+    await this.createHotel(burjAlArabHotel);
 
-    const mercerHotel: InsertHotel = {
-      name: "The Mercer Hotel",
-      location: "SoHo",
-      area: "Manhattan",
+    const atlantisHotel: InsertHotel = {
+      name: "Atlantis, The Palm",
+      location: "Palm Jumeirah",
+      area: "The Palm",
       rating: 4.5,
-      reviewCount: 218,
-      pricePerNight: 380,
-      totalPrice: 2660,
-      pointsEarned: 13300,
-      description: "Chic boutique hotel in the heart of SoHo with loft-style rooms and popular restaurant.",
-      imageUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427",
+      reviewCount: 1243,
+      pricePerNight: 42000, // ₹42,000
+      totalPrice: 294000,   // ₹294,000 for 7 nights
+      pointsEarned: 88200,
+      description: "Iconic ocean-themed resort with a massive aquarium, water park, and private beach on Palm Jumeirah.",
+      imageUrl: "https://images.unsplash.com/photo-1556767573-4c111cce8103",
       benefits: [
-        "$50 dining credit",
-        "Late checkout 2PM",
-        "Free breakfast for two"
+        "Free Aquaventure Waterpark access",
+        "SBI Elite Card 8% instant discount",
+        "Late checkout 4PM",
+        "Free Lost Chambers Aquarium tickets"
       ],
-      cardExclusiveOffer: "5X points with Amex booking"
+      cardExclusiveOffer: "3X bonus SBI Card ELITE Reward Points"
     };
-    await this.createHotel(mercerHotel);
+    await this.createHotel(atlantisHotel);
 
-    const standardHotel: InsertHotel = {
-      name: "The Standard High Line",
-      location: "Meatpacking District",
-      area: "Manhattan",
-      rating: 4.0,
-      reviewCount: 415,
-      pricePerNight: 320,
-      totalPrice: 2240,
-      pointsEarned: 11200,
-      description: "Modern hotel with floor-to-ceiling windows and rooftop bar overlooking the High Line.",
-      imageUrl: "https://images.unsplash.com/photo-1445019980597-93fa8acb246c",
+    const addressDowntownHotel: InsertHotel = {
+      name: "Address Downtown",
+      location: "Downtown Dubai",
+      area: "Downtown",
+      rating: 4.7,
+      reviewCount: 562,
+      pricePerNight: 35000, // ₹35,000
+      totalPrice: 245000,   // ₹245,000 for 7 nights
+      pointsEarned: 73500,
+      description: "Luxury hotel with stunning views of Burj Khalifa and Dubai Fountain. Features multiple restaurants and infinity pool.",
+      imageUrl: "https://images.unsplash.com/photo-1533395427226-a54d3a0c25b3",
       benefits: [
-        "$25 food & beverage credit",
-        "Priority room assignment",
-        "Complimentary WiFi"
+        "ICICI Emeralde complimentary dinner",
+        "Dubai Mall shopping vouchers",
+        "Burj Khalifa fast-track tickets",
+        "Free WiFi and airport transfers"
       ],
-      cardExclusiveOffer: "10% Amex statement credit"
+      cardExclusiveOffer: "12% discount with ICICI Emeralde card"
     };
-    await this.createHotel(standardHotel);
+    await this.createHotel(addressDowntownHotel);
 
     // Create sample shopping offers
     const bloomingdalesOffer: InsertShoppingOffer = {
@@ -289,7 +291,7 @@ export class MemStorage implements IStorage {
       description: "Official Samsung stores with latest products including Galaxy S25 Ultra and other premium smartphones.",
       imageUrl: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c",
       benefits: [
-        "10% cashback up to ₹5,000 with Chase Freedom",
+        "10% cashback up to ₹5,000 with HDFC Infinia",
         "Additional 1-year warranty with HDFC cards"
       ],
       validThrough: "August 31, 2023",
@@ -323,7 +325,7 @@ export class MemStorage implements IStorage {
       description: "Indian retail chain for consumer electronics and durables with wide product selection.",
       imageUrl: "https://images.unsplash.com/photo-1546054454-aa26e2b734c7",
       benefits: [
-        "5X reward points with American Express cards",
+        "5X reward points with SBI Elite cards",
         "Extended warranty protection on premium electronics"
       ],
       validThrough: "July 30, 2023",
@@ -340,7 +342,7 @@ export class MemStorage implements IStorage {
       description: "E-commerce giant with vast selection of products including the latest smartphones and electronics.",
       imageUrl: "https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2",
       benefits: [
-        "15% instant discount up to ₹7,500 with HDFC cards",
+        "15% instant discount up to ₹7,500 with HDFC Infinia",
         "Additional exchange bonus of ₹5,000 on old phones"
       ],
       validThrough: "Limited period offer",
@@ -357,7 +359,7 @@ export class MemStorage implements IStorage {
       description: "Electronics retail chain offering a wide range of consumer electronics and home appliances.",
       imageUrl: "https://images.unsplash.com/photo-1601524909162-ae8725290836",
       benefits: [
-        "Instant cashback of ₹8,000 with Amex cards",
+        "Instant cashback of ₹8,000 with ICICI Emeralde",
         "Free premium case worth ₹3,999"
       ],
       validThrough: "July 15, 2023",
@@ -369,7 +371,7 @@ export class MemStorage implements IStorage {
     const welcomeMessage: InsertChatMessage = {
       userId: createdUser.id,
       role: "assistant",
-      content: "Hello James! I'm your CardConcierge. How can I help you plan your travel or shopping today? I can help you maximize your credit card benefits.",
+      content: "Hello James! I'm your CardConcierge. I see you have premium Indian credit cards including HDFC Infinia, ICICI Emeralde, and SBI Elite. How can I help you maximize your card benefits for travel or shopping today? Would you like recommendations for flights, hotels, or perhaps help finding the best deals on electronics?",
       timestamp: new Date().toISOString()
     };
     await this.createChatMessage(welcomeMessage);
