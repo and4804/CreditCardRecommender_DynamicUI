@@ -1,9 +1,13 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import OpenAI from "openai";
 import { z } from "zod";
-import { insertChatMessageSchema } from "@shared/schema";
+import session from "express-session";
+import { insertChatMessageSchema, insertUserSchema } from "@shared/schema";
+import { hashPassword, comparePasswords } from "./auth";
+import { pool } from "./db";
+import connectPgSimple from "connect-pg-simple";
 
 // Initialize OpenAI with API key from environment
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "sk-dummy-key-for-development" });
@@ -26,6 +30,116 @@ type ContextAnalysis = {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup sessions
+  const PgSession = connectPgSimple(session);
+  app.use(session({
+    store: new PgSession({
+      pool,
+      tableName: 'sessions',
+      createTableIfMissing: true
+    }),
+    secret: process.env.SESSION_SECRET || 'cardsavvy-session-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      httpOnly: true
+    }
+  }));
+
+  // Authentication middleware
+  const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+    if (req.session && req.session.userId) {
+      return next();
+    }
+    return res.status(401).json({ message: "Unauthorized" });
+  };
+
+  // Authentication routes
+  app.post("/api/auth/register", async (req: Request, res: Response) => {
+    try {
+      // Validate request data
+      const userData = insertUserSchema.parse(req.body);
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(userData.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      
+      // Hash password
+      userData.password = await hashPassword(userData.password);
+      
+      // Create user
+      const newUser = await storage.createUser(userData);
+      
+      // Set session
+      req.session.userId = newUser.id;
+      
+      // Return user without password
+      const { password, ...userWithoutPassword } = newUser;
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(400).json({ message: "Invalid user data", error: (error as Error).message });
+    }
+  });
+
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
+    try {
+      const { username, password } = req.body;
+      
+      // Find user by username
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+      
+      // Verify password
+      const isValid = await comparePasswords(password, user.password);
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid username or password" });
+      }
+      
+      // Set session
+      req.session.userId = user.id;
+      
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(400).json({ message: "Invalid login data", error: (error as Error).message });
+    }
+  });
+
+  app.post("/api/auth/logout", (req: Request, res: Response) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Could not log out" });
+      }
+      res.clearCookie("connect.sid");
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  // Get current authenticated user
+  app.get("/api/auth/me", async (req: Request, res: Response) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    const user = await storage.getUser(req.session.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Return user without password
+    const { password, ...userWithoutPassword } = user;
+    res.json(userWithoutPassword);
+  });
+  
   // API routes
   
   // Auth0 verification endpoint for alternative authentication flow
