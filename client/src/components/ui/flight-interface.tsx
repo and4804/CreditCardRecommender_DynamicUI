@@ -55,10 +55,10 @@ export function FlightInterface() {
         <div className="flex justify-between items-center">
           <h2 className="font-sf-pro font-semibold">Flight Search</h2>
           <div className="text-xs bg-white text-[#00A4E4] px-2 py-1 rounded-full">
-            Using Amex Points
+            Using HDFC Infinia Points
           </div>
         </div>
-        <p className="text-sm opacity-80">SFO to NYC • Jun 15-22, 2023 • 1 Traveler</p>
+        <p className="text-sm opacity-80">Mumbai to Dubai • May 15-22, 2023 • 1 Traveler</p>
       </div>
       
       <div className="p-4">
@@ -103,13 +103,13 @@ export function FlightInterface() {
             className={`text-xs px-3 py-1 rounded-full ${selectedFilter === "amexPartners" ? "bg-[#1A1F71] text-white" : "bg-gray-100 hover:bg-gray-200"}`}
             onClick={() => handleFilterClick("amexPartners")}
           >
-            Amex Travel Partners
+            Indian Card Partners
           </Button>
         </div>
         
         {/* Results Header */}
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-sf-pro font-medium">Best Options for Your Amex Card</h3>
+          <h3 className="font-sf-pro font-medium">Best Options for Your Indian Premium Cards</h3>
           <div className="flex items-center">
             <span className="text-sm mr-2">Sort by:</span>
             <Select value={sortBy} onValueChange={setSortBy}>
@@ -253,7 +253,7 @@ export function FlightInterface() {
         
         {/* Card Benefits Section */}
         <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-100">
-          <h3 className="font-sf-pro font-medium text-sm mb-2 text-[#1A1F71]">Your Amex Platinum Card Benefits</h3>
+          <h3 className="font-sf-pro font-medium text-sm mb-2 text-[#1A1F71]">Your Premium Indian Credit Card Benefits</h3>
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center">
               <svg 
@@ -267,7 +267,7 @@ export function FlightInterface() {
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
-              <span className="text-xs">5X points on flights booked directly</span>
+              <span className="text-xs">HDFC Infinia: 5% cashback on flights</span>
             </div>
             <div className="flex items-center">
               <svg 
@@ -281,7 +281,7 @@ export function FlightInterface() {
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
-              <span className="text-xs">$200 airline fee credit</span>
+              <span className="text-xs">ICICI Emeralde: Complimentary lounge access</span>
             </div>
             <div className="flex items-center">
               <svg 
@@ -295,7 +295,7 @@ export function FlightInterface() {
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
-              <span className="text-xs">Airport lounge access</span>
+              <span className="text-xs">SBI Elite: 8% discount on Air India</span>
             </div>
             <div className="flex items-center">
               <svg 
@@ -309,7 +309,7 @@ export function FlightInterface() {
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
-              <span className="text-xs">Global Entry/TSA PreCheck credit</span>
+              <span className="text-xs">Free travel insurance up to ₹50 lakhs</span>
             </div>
           </div>
         </div>
