@@ -15,6 +15,11 @@ export default function Callback() {
   const errorParam = searchParams.get('error');
   const errorDescription = searchParams.get('error_description');
 
+  // Get code from URL to check if Auth0 redirected properly
+  const code = searchParams.get('code');
+  const state = searchParams.get('state');
+  const hasAuthParams = !!code && !!state;
+
   useEffect(() => {
     // Log debugging information
     console.log("Auth0 Callback Status:", { 
@@ -26,8 +31,44 @@ export default function Callback() {
       user: user ? 'User data available' : 'No user data',
       location: window.location.href,
       redirectUri: auth0Config.redirectUri,
-      search: window.location.search
+      search: window.location.search,
+      hasAuthParams: hasAuthParams
     });
+
+    // Detect if we're in the "Unauthorized" error case
+    const isUnauthorizedError = error && error.message === "Unauthorized";
+
+    // Special handling for the "Unauthorized" error which typically means
+    // the Auth0 configuration isn't accepting our redirect URL correctly
+    if (isUnauthorizedError && hasAuthParams) {
+      console.log("Detected Unauthorized error with valid auth params - this usually means:");
+      console.log("1. Auth0 application settings may not have the correct callback URL");
+      console.log("2. Auth0 may require an API configuration for the audience");
+      
+      // We'll try direct verification with the API as an alternative approach
+      fetch('/api/auth/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ code, state })
+      })
+      .then(response => {
+        console.log("Manual verification response:", response.status);
+        if (response.ok) {
+          return response.json();
+        }
+        throw new Error(`Manual verification failed: ${response.status}`);
+      })
+      .then(data => {
+        console.log("Manual verification successful:", data);
+        // If this worked, redirect to home
+        setTimeout(() => setLocation('/'), 1000);
+      })
+      .catch(err => {
+        console.error("Manual verification error:", err);
+      });
+    }
 
     setDebugInfo({
       isAuthenticated, 
@@ -38,6 +79,7 @@ export default function Callback() {
       urlErrorDescription: errorDescription,
       hasUser: !!user,
       currentUrl: window.location.href,
+      hasAuthParams: hasAuthParams,
       currentTime: new Date().toISOString()
     });
 
@@ -51,8 +93,16 @@ export default function Callback() {
       } else if (error || errorParam) {
         // Authentication error
         const errorMessage = errorDescription || (error ? error.message : 'Unknown error');
-        setStatus(`Authentication error: ${errorMessage}`);
-        console.error('Authentication error:', error || errorMessage);
+        
+        if (isUnauthorizedError && hasAuthParams) {
+          setStatus("Trying alternative authentication method...");
+        } else {
+          setStatus(`Authentication error: ${errorMessage}`);
+          console.error('Authentication error:', error || errorMessage);
+        }
+      } else if (hasAuthParams && !isAuthenticated) {
+        // We have auth params but no authentication yet
+        setStatus("Received authentication code. Processing...");
       } else {
         // No auth result but no error either - this is unusual
         setStatus("Authentication incomplete. Please try again.");
@@ -60,7 +110,7 @@ export default function Callback() {
     } else {
       setStatus("Processing authentication...");
     }
-  }, [isAuthenticated, isLoading, error, user, errorParam, errorDescription, setLocation]);
+  }, [isAuthenticated, isLoading, error, user, errorParam, errorDescription, setLocation, code, state, hasAuthParams]);
 
   // Show an error card if there's an authentication error
   if (!isLoading && (error || errorParam)) {

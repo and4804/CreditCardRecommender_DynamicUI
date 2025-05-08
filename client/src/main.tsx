@@ -22,8 +22,8 @@ createRoot(document.getElementById("root")!).render(
     clientId={auth0Config.clientId}
     authorizationParams={{
       redirect_uri: auth0Config.redirectUri,
-      scope: "openid profile email",
-      audience: `https://${auth0Config.domain}/api/v2/`
+      scope: "openid profile email"
+      // Removed audience to simplify authentication
     }}
     cacheLocation="localstorage"
     useRefreshTokens={true}

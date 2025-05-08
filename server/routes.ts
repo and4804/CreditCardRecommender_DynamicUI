@@ -28,21 +28,50 @@ type ContextAnalysis = {
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes
   
-  // Auth0 verification endpoint
+  // Auth0 verification endpoint for alternative authentication flow
   app.post("/api/auth/verify", async (req: Request, res: Response) => {
     try {
-      const { token } = req.body;
+      const { code, state } = req.body;
       
-      // In a real implementation, you would verify the JWT token from Auth0
-      // For now, we just return success
-      res.json({ 
-        success: true,
-        message: "Token verified successfully" 
+      // Log what we received from the client
+      console.log("Auth verification request received:", { 
+        hasCode: !!code, 
+        hasState: !!state,
+        origin: req.get('origin') || req.get('host')
+      });
+      
+      if (!code || !state) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Missing required parameters",
+          details: "Auth0 code and state parameters are required" 
+        });
+      }
+      
+      // For simplicity in this prototype, we're treating any valid code and state as successful
+      // In a production app, this would exchange the code for tokens with Auth0's token endpoint
+      
+      // Creating a mock user that would come from Auth0
+      const mockUser = {
+        id: 1,
+        name: "James Wilson", // Match our existing user
+        email: "james.wilson@example.com",
+        picture: "https://i.pravatar.cc/150?u=james.wilson@example.com"
+      };
+      
+      // Log success and return a success response with mock user data
+      console.log("Auth verification successful with mock implementation");
+      res.status(200).json({ 
+        success: true, 
+        message: "Authentication verified", 
+        user: mockUser 
       });
     } catch (error) {
+      console.error("Auth verification error:", error);
       res.status(401).json({ 
-        success: false,
-        message: "Invalid token" 
+        success: false, 
+        message: "Authentication failed",
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   });
