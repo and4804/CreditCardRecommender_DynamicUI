@@ -1,5 +1,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useAuth0 as useAuth0Hook, Auth0Provider as Auth0ProviderBase } from '@auth0/auth0-react';
+import { auth0Config } from '../auth0-config';
 
 // Create context to share Auth0 state and functionality
 export const Auth0Context = createContext<any>(null);
@@ -8,10 +9,10 @@ export const Auth0Context = createContext<any>(null);
 export const Auth0Provider = ({ children }: { children: ReactNode }) => {
   return (
     <Auth0ProviderBase
-      domain={import.meta.env.VITE_AUTH0_DOMAIN || ''}
-      clientId={import.meta.env.VITE_AUTH0_CLIENT_ID || ''}
+      domain={auth0Config.domain}
+      clientId={auth0Config.clientId}
       authorizationParams={{
-        redirect_uri: import.meta.env.VITE_AUTH0_REDIRECT_URI,
+        redirect_uri: auth0Config.redirectUri,
       }}
     >
       {children}
