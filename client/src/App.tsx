@@ -24,7 +24,9 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
+      staleTime: 0, // Consider data stale immediately
+      gcTime: 10000, // Cache for 10 seconds (using gcTime instead of cacheTime for v5)
     },
   },
 });
@@ -71,10 +73,7 @@ function Router() {
       )}/>
       <Route path="/benefits" component={() => (
         <ProtectedRouteNew>
-          <div className="min-h-screen p-8">
-            <h1 className="text-2xl font-bold mb-4">Benefits Page</h1>
-            <p>This page is under construction</p>
-          </div>
+          <Benefits />
         </ProtectedRouteNew>
       )}/>
       <Route component={NotFound} />

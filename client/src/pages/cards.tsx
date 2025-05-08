@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { CreditCard as CardType } from '@shared/schema';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,11 +10,23 @@ import { AddCardDialog } from '@/components/ui/add-card-dialog';
 
 export default function Cards() {
   const [activeTab, setActiveTab] = useState('all');
+  const [refreshKey, setRefreshKey] = useState(0); // Add key for forcing refresh
+  
+  // Use React's useEffect to refresh the query periodically
+  useEffect(() => {
+    // Force refresh every 2 seconds
+    const interval = setInterval(() => {
+      setRefreshKey(prev => prev + 1);
+    }, 2000);
+    
+    return () => clearInterval(interval);
+  }, []);
   
   const { data: cards, isLoading, refetch } = useQuery<CardType[]>({
-    queryKey: ['/api/cards'],
+    queryKey: ['/api/cards', refreshKey], // Add refreshKey to query key
     refetchOnWindowFocus: true,
-    staleTime: 1000, // Consider data stale after 1 second
+    staleTime: 0, // Consider data stale immediately
+    refetchInterval: 1000, // Refetch every second
   });
 
   if (isLoading) {
