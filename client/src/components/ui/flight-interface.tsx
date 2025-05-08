@@ -188,7 +188,11 @@ export function FlightInterface() {
                 
                 <div className="ml-6 text-right">
                   <p className="font-semibold text-[#00A4E4]">{flight.pointsRequired.toLocaleString()} points</p>
-                  <p className="text-xs text-gray-500">or ${flight.cashPrice}</p>
+                  <div className="relative">
+                    <p className="text-xs text-gray-500 line-through">₹{flight.cashPrice.toLocaleString()}</p>
+                    <p className="text-xs font-semibold text-green-600">₹{Math.round(flight.cashPrice * 0.85).toLocaleString()}</p>
+                    <p className="text-xs text-green-600">Save ₹{Math.round(flight.cashPrice * 0.15).toLocaleString()}</p>
+                  </div>
                   <div className="flex items-center justify-end mt-1">
                     {[...Array(Math.floor(flight.rating))].map((_, i) => (
                       <svg 

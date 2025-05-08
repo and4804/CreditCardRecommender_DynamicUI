@@ -33,7 +33,7 @@ export function HotelInterface() {
               FHR Properties
             </div>
           </div>
-          <p className="text-sm opacity-80">New York City • Jun 15-22, 2023 • 1 Guest</p>
+          <p className="text-sm opacity-80">Dubai • May 15-22, 2023 • 1 Guest</p>
         </div>
         
         <div className="p-4">
@@ -58,7 +58,7 @@ export function HotelInterface() {
             FHR Properties
           </div>
         </div>
-        <p className="text-sm opacity-80">New York City • Jun 15-22, 2023 • 1 Guest</p>
+        <p className="text-sm opacity-80">Dubai • May 15-22, 2023 • 1 Guest</p>
       </div>
       
       <div className="p-4">
@@ -79,7 +79,7 @@ export function HotelInterface() {
             className={`text-xs px-3 py-1 rounded-full ${selectedFilter === "midPrice" ? "bg-[#FFB700] text-white" : "bg-gray-100 hover:bg-gray-200"}`}
             onClick={() => handleFilterClick("midPrice")}
           >
-            $300-500/night
+            ₹30,000-50,000/night
           </Button>
           <Button 
             variant="outline"
@@ -100,10 +100,10 @@ export function HotelInterface() {
           <Button 
             variant="outline"
             size="sm"
-            className={`text-xs px-3 py-1 rounded-full ${selectedFilter === "manhattan" ? "bg-[#FFB700] text-white" : "bg-gray-100 hover:bg-gray-200"}`}
-            onClick={() => handleFilterClick("manhattan")}
+            className={`text-xs px-3 py-1 rounded-full ${selectedFilter === "downtown" ? "bg-[#FFB700] text-white" : "bg-gray-100 hover:bg-gray-200"}`}
+            onClick={() => handleFilterClick("downtown")}
           >
-            Manhattan
+            Dubai Downtown
           </Button>
         </div>
         
@@ -198,9 +198,12 @@ export function HotelInterface() {
                       <p className="text-sm text-gray-500 mt-1">{hotel.location}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">${hotel.pricePerNight}<span className="text-sm font-normal text-gray-500">/night</span></p>
-                      <p className="text-xs text-gray-500">${hotel.totalPrice} total</p>
-                      <p className="text-xs text-green-600">Earn {hotel.pointsEarned.toLocaleString()} Amex points</p>
+                      <p className="font-semibold text-gray-500 line-through">₹{hotel.pricePerNight.toLocaleString()}<span className="text-sm font-normal">/night</span></p>
+                      <p className="font-semibold text-[#1A1F71]">₹{Math.round(hotel.pricePerNight * 0.85).toLocaleString()}<span className="text-sm font-normal text-gray-500">/night</span></p>
+                      <p className="text-xs text-gray-500 line-through">₹{hotel.totalPrice.toLocaleString()} total</p>
+                      <p className="text-xs font-semibold text-green-600">₹{Math.round(hotel.totalPrice * 0.85).toLocaleString()} total</p>
+                      <p className="text-xs text-green-600">Save ₹{Math.round(hotel.totalPrice * 0.15).toLocaleString()}</p>
+                      <p className="text-xs text-amber-600 mt-1">Earn {hotel.pointsEarned.toLocaleString()} points</p>
                     </div>
                   </div>
                   
@@ -241,7 +244,7 @@ export function HotelInterface() {
         
         {/* Card Benefits Section */}
         <div className="mt-4 p-4 rounded-lg bg-yellow-50 border border-yellow-100">
-          <h3 className="font-sf-pro font-medium text-sm mb-2 text-[#1A1F71]">Your Amex Platinum Card Benefits</h3>
+          <h3 className="font-sf-pro font-medium text-sm mb-2 text-[#1A1F71]">Your Premium Indian Credit Card Benefits</h3>
           <div className="grid grid-cols-2 gap-2">
             <div className="flex items-center">
               <svg 
@@ -255,7 +258,7 @@ export function HotelInterface() {
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
-              <span className="text-xs">$200 Hotel Collection credit</span>
+              <span className="text-xs">HDFC Infinia: 10X reward points</span>
             </div>
             <div className="flex items-center">
               <svg 
@@ -269,7 +272,7 @@ export function HotelInterface() {
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
-              <span className="text-xs">Room upgrades when available</span>
+              <span className="text-xs">ICICI Emeralde: 12% discount</span>
             </div>
             <div className="flex items-center">
               <svg 
@@ -283,7 +286,7 @@ export function HotelInterface() {
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
-              <span className="text-xs">Late checkout guaranteed</span>
+              <span className="text-xs">SBI Elite: Free airport transfers</span>
             </div>
             <div className="flex items-center">
               <svg 
@@ -297,7 +300,7 @@ export function HotelInterface() {
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                 <polyline points="22 4 12 14.01 9 11.01"></polyline>
               </svg>
-              <span className="text-xs">Daily breakfast for two</span>
+              <span className="text-xs">All cards: Free Burj Khalifa tickets</span>
             </div>
           </div>
         </div>
