@@ -64,39 +64,48 @@ export default function Cards() {
         
         <TabsContent value="all" className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {cards?.map((card) => (
-              <Card key={card.id} className={`border-t-4 border-t-${card.color}`}>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between">
-                    <CardTitle className="text-lg">{card.cardName}</CardTitle>
-                    <div className="flex items-center justify-center w-12 h-8 bg-[#1A1F71] rounded text-white text-xs">
-                      {card.issuer.substring(0, 4)}
+            {cards?.map((card) => {
+              // Determine appropriate color class
+              let colorClass = "";
+              if (card.color === "primary") colorClass = "border-t-blue-600";
+              else if (card.color === "accent") colorClass = "border-t-cyan-500";
+              else if (card.color === "gray") colorClass = "border-t-gray-500";
+              else colorClass = "border-t-blue-600"; // Default fallback
+              
+              return (
+                <Card key={card.id} className={`border-t-4 ${colorClass}`}>
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between">
+                      <CardTitle className="text-lg">{card.cardName}</CardTitle>
+                      <div className="flex items-center justify-center w-12 h-8 bg-[#1A1F71] rounded text-white text-xs">
+                        {card.issuer.substring(0, 4)}
+                      </div>
                     </div>
-                  </div>
-                  <CardDescription>{card.issuer}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="font-mono text-base mb-2">**** **** **** {card.cardNumber.slice(-4)}</div>
-                  <div className="text-sm text-gray-500">Expires: {card.expireDate}</div>
-                  
-                  <div className="mt-4">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-sm">Points Balance</span>
-                      <span className="font-medium">{card.pointsBalance.toLocaleString()}</span>
+                    <CardDescription>{card.issuer}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="font-mono text-base mb-2">**** **** **** {card.cardNumber.slice(-4)}</div>
+                    <div className="text-sm text-gray-500">Expires: {card.expireDate}</div>
+                    
+                    <div className="mt-4">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-sm">Points Balance</span>
+                        <span className="font-medium">{card.pointsBalance.toLocaleString()}</span>
+                      </div>
+                      <Progress value={card.pointsBalance / 100} className="h-2" />
                     </div>
-                    <Progress value={card.pointsBalance / 100} className="h-2" />
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between pt-0">
-                  <Button variant="ghost" size="sm" className="text-[#1A1F71]">
-                    View Details
-                  </Button>
-                  <Button variant="outline" size="sm" className="text-[#1A1F71]">
-                    Manage
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
+                  </CardContent>
+                  <CardFooter className="flex justify-between pt-0">
+                    <Button variant="ghost" size="sm" className="text-[#1A1F71]">
+                      View Details
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-[#1A1F71]">
+                      Manage
+                    </Button>
+                  </CardFooter>
+                </Card>
+              );
+            })}
             
             <AddCardDialog>
               <Card className="border-dashed border-2 border-gray-200 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors">
