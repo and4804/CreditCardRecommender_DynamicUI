@@ -12,7 +12,8 @@ const queryClient = new QueryClient();
 console.log("Using Auth0 Configuration:", { 
   domain: auth0Config.domain,
   clientIdAvailable: !!auth0Config.clientId,
-  redirectUri: auth0Config.redirectUri
+  redirectUri: auth0Config.redirectUri,
+  currentOrigin: window.location.origin
 });
 
 createRoot(document.getElementById("root")!).render(
@@ -21,7 +22,11 @@ createRoot(document.getElementById("root")!).render(
     clientId={auth0Config.clientId}
     authorizationParams={{
       redirect_uri: auth0Config.redirectUri,
+      scope: "openid profile email",
+      audience: `https://${auth0Config.domain}/api/v2/`
     }}
+    cacheLocation="localstorage"
+    useRefreshTokens={true}
   >
     <QueryClientProvider client={queryClient}>
       <App />
