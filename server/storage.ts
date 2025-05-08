@@ -87,7 +87,9 @@ export class MemStorage implements IStorage {
       username: "james.wilson",
       password: "password123", // In a real app, this would be hashed
       name: "James Wilson",
-      membershipLevel: "Platinum"
+      email: "james.wilson@example.com",
+      membershipLevel: "Platinum",
+      pictureUrl: undefined
     };
     const createdUser = await this.createUser(user);
 
@@ -390,7 +392,15 @@ export class MemStorage implements IStorage {
 
   async createUser(user: InsertUser): Promise<User> {
     const id = this.userIdCounter++;
-    const newUser: User = { ...user, id };
+    const now = new Date().toISOString();
+    const newUser: User = {
+      ...user,
+      id,
+      membershipLevel: user.membershipLevel || "Standard",
+      pictureUrl: user.pictureUrl || null,
+      createdAt: now,
+      lastLogin: now
+    };
     this.users.set(id, newUser);
     return newUser;
   }
