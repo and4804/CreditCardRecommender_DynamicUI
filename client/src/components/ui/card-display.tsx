@@ -1,0 +1,85 @@
+import { useQuery } from "@tanstack/react-query";
+import { CreditCard } from "@shared/schema";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+
+export function CardDisplay() {
+  const { data: cards, isLoading } = useQuery<CreditCard[]>({
+    queryKey: ["/api/cards"],
+  });
+
+  if (isLoading) {
+    return (
+      <div className="mb-6 bg-white p-4 rounded-lg shadow-md">
+        <h2 className="font-sf-pro text-lg font-semibold mb-3">Your Active Credit Cards</h2>
+        <div className="flex overflow-x-auto space-x-4 pb-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex-shrink-0 w-64 h-36 rounded-lg">
+              <Skeleton className="h-full w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const getCardGradient = (color: string) => {
+    switch (color) {
+      case "primary":
+        return "bg-gradient-to-r from-[#1A1F71] to-[#141A5E]";
+      case "accent":
+        return "bg-gradient-to-r from-[#00A4E4] to-[#0082B6]";
+      case "gray":
+        return "bg-gradient-to-r from-gray-700 to-gray-900";
+      default:
+        return "bg-gradient-to-r from-[#1A1F71] to-[#141A5E]";
+    }
+  };
+
+  return (
+    <div className="mb-6 bg-white p-4 rounded-lg shadow-md">
+      <h2 className="font-sf-pro text-lg font-semibold mb-3">Your Active Credit Cards</h2>
+      <div className="flex overflow-x-auto space-x-4 pb-2">
+        {cards?.map((card) => (
+          <div
+            key={card.id}
+            className={`flex-shrink-0 w-64 p-3 rounded-lg ${getCardGradient(card.color)} text-white`}
+          >
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <p className="text-xs opacity-80">{card.cardName}</p>
+                <p className="font-semibold">{card.issuer}</p>
+              </div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`w-5 h-5 ${card.color === "accent" ? "text-white" : "text-[#FFB700]"}`}
+              >
+                <rect width="20" height="14" x="2" y="5" rx="2" />
+                <line x1="2" x2="22" y1="10" y2="10" />
+              </svg>
+            </div>
+            <div className="mb-4">
+              <p className="font-mono text-sm tracking-wider">{card.cardNumber}</p>
+            </div>
+            <div className="flex justify-between text-xs">
+              <div>
+                <p className="opacity-80">Points Balance</p>
+                <p className="font-semibold">{card.pointsBalance.toLocaleString()}</p>
+              </div>
+              <div className="text-right">
+                <p className="opacity-80">Expire Date</p>
+                <p className="font-semibold">{card.expireDate}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
