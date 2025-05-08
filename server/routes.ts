@@ -109,16 +109,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let aiResponseText = "";
       
       try {
+        // Create a dynamic system prompt based on the conversation context
+        let systemPrompt = `You are CardConcierge, an AI-powered travel and shopping assistant that helps users maximize their credit card benefits.
+        Your goal is to create a conversational, step-by-step planning experience that collects all necessary information.
+        
+        Context: ${contextAnalysis.context}
+        Intent: ${contextAnalysis.intent}
+        
+        IMPORTANT CONVERSATION GUIDELINES:
+        
+        1. For FLIGHT bookings:
+           - If user hasn't specified travel dates, ask for them
+           - If user hasn't specified number of passengers, ask for them
+           - If user hasn't specified preferred time of day, ask for preferences
+           - After collecting all necessary flight details, suggest the best credit card to use
+           - After completing flight conversation, ask if they need hotel recommendations for their destination
+           
+        2. For HOTEL bookings:
+           - If user hasn't specified check-in/check-out dates, ask for them
+           - If user hasn't specified number of guests, ask for them
+           - If user hasn't specified any preferences (area, amenities), ask for them
+           - After collecting all necessary hotel details, suggest the best credit card to use
+           - After hotel conversation, ask if they need shopping or dining recommendations for their destination
+           
+        3. For SHOPPING assistance:
+           - If user is looking for a specific product, ask for details about their preferences
+           - If user hasn't specified a budget, ask for a range
+           - After understanding their shopping needs, recommend the best credit card to maximize rewards
+           
+        Always maintain a helpful, conversational tone. Ask one question at a time to avoid overwhelming the user.
+        After completing one stage of planning, guide them to the next logical step in their journey.`;
+
         const response = await openai.chat.completions.create({
           model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
           messages: [
             {
               role: "system",
-              content: `You are CardConcierge, an AI-powered travel and shopping assistant that helps users maximize their credit card benefits.
-              Craft responses as a helpful concierge, focusing on providing personalized travel and shopping recommendations.
-              Context: ${contextAnalysis.context}
-              Intent: ${contextAnalysis.intent}
-              Keep responses concise (under 150 words) and focused on the user's request.`
+              content: systemPrompt
             },
             ...chatHistory.map(msg => ({
               role: msg.role as "user" | "assistant",
@@ -184,19 +211,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 // Function to analyze message context using OpenAI
 async function analyzeMessageContext(message: string, chatHistory: any[]): Promise<ContextAnalysis> {
   try {
-    const contextMessages = chatHistory.slice(-5); // Last 5 messages for context
+    const contextMessages = chatHistory.slice(-8); // Get more context messages (last 8)
     
     const prompt = `
-      Analyze the following user message in the context of a travel and credit card benefits assistant:
+      Analyze the following user message in the context of a travel and credit card benefits assistant that guides users through step-by-step travel planning and shopping:
       
       "${message}"
       
       ${contextMessages.length > 0 ? `Recent conversation context:
-      ${contextMessages.map(msg => `${msg.role}: ${msg.content}`).join('\n')}` : ''}
+      ${contextMessages.map(msg => `${msg.role}: ${msg.content}`).join('\n')}` : 'No recent conversation.'}
       
-      Identify the primary context of the message (flight, hotel, shopping, or general),
-      the user's intent, and extract any relevant entities like locations, dates, number of travelers,
-      card preferences, budget constraints, or shopping categories.
+      CONTEXT ANALYSIS INSTRUCTIONS:
+      
+      1. For flight inquiries:
+         - If this is a NEW flight query, set context to "flight"
+         - If user is CONTINUING a flight conversation (answering questions about dates, passengers, etc.), MAINTAIN "flight" context
+      
+      2. For hotel inquiries:
+         - If this is a NEW hotel query, set context to "hotel"
+         - If user is CONTINUING a hotel conversation (answering about check-in/out dates, guest count, etc.), MAINTAIN "hotel" context
+         - If user just completed a flight booking and this relates to hotels at their destination, set context to "hotel"
+      
+      3. For shopping inquiries:
+         - If this is a NEW shopping query, set context to "shopping"
+         - If user is CONTINUING a shopping conversation (answering about product preferences, budget, etc.), MAINTAIN "shopping" context
+         - If user is responding to a suggestion about shopping at their travel destination, set context to "shopping"
+      
+      4. For general inquiries that don't fit above contexts, set to "general"
       
       Respond with JSON in this exact format:
       {
@@ -228,7 +269,8 @@ async function analyzeMessageContext(message: string, chatHistory: any[]): Promi
         temperature: 0.3
       });
       
-      const result = JSON.parse(response.choices[0].message.content);
+      const content = response.choices[0].message.content || '{"context":"general","intent":"Unknown intent","entities":{}}';
+      const result = JSON.parse(content);
       return result as ContextAnalysis;
     } catch (error) {
       console.error("OpenAI API error in context analysis:", error);

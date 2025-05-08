@@ -406,7 +406,12 @@ export class MemStorage implements IStorage {
 
   async createCreditCard(card: InsertCreditCard): Promise<CreditCard> {
     const id = this.cardIdCounter++;
-    const newCard: CreditCard = { ...card, id };
+    // Ensure color property is always defined
+    const newCard: CreditCard = { 
+      ...card, 
+      id,
+      color: card.color || "primary" 
+    };
     this.creditCards.set(id, newCard);
     return newCard;
   }
