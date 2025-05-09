@@ -20,36 +20,20 @@ export default function Cards() {
     setRefreshKey(prev => prev + 1);
   };
   
-  // This effect runs whenever the page becomes visible
+  // This effect runs once when the component mounts
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        manualRefresh();
-      }
-    };
-    
-    // Force a refresh when component mounts
+    // Do a single refresh when component mounts to ensure we have latest data
     const timeout = setTimeout(() => {
       manualRefresh();
     }, 500);
     
-    // Listen for visibility changes
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
     return () => {
       clearTimeout(timeout);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
   
-  // Set up an interval to refresh periodically
-  useEffect(() => {
-    const interval = setInterval(() => {
-      manualRefresh();
-    }, 10000); // Refresh every 10 seconds
-    
-    return () => clearInterval(interval);
-  }, []);
+  // Remove the automatic refresh interval as it was too aggressive
+  // We'll rely on the initial load and manual refresh button instead
   
   const { data: cards, isLoading, refetch } = useQuery<CardType[]>({
     queryKey: ['/api/cards', refreshKey],
