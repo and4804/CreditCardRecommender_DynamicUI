@@ -496,6 +496,19 @@ export class MemStorage implements IStorage {
     this.chatMessages.set(id, newMessage);
     return newMessage;
   }
+  
+  // Clear chat messages for a user
+  async clearChatMessages(userId: number): Promise<void> {
+    // Get all messages
+    const allMessages = Array.from(this.chatMessages.entries());
+    
+    // For each message that belongs to the specified user, remove it from the map
+    for (const [messageId, message] of allMessages) {
+      if (message.userId === userId) {
+        this.chatMessages.delete(messageId);
+      }
+    }
+  }
 }
 
 // Import the database storage

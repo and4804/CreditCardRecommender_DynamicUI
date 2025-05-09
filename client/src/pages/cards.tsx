@@ -27,25 +27,41 @@ export default function Cards() {
     await refetch();
   };
   
-  // This effect runs once when the component mounts
+  // This effect runs once when the component first mounts
   useEffect(() => {
-    // Clear the previous query cache for cards
-    queryClient.removeQueries({ queryKey: ['/api/cards'] });
+    // Use a direct API call to ensure we get fresh data on mount
+    const fetchInitialData = async () => {
+      try {
+        // Direct API call without using the React Query cache
+        const response = await apiRequest('GET', '/api/cards');
+        const initialCards = await response.json();
+        
+        // Set the data in the cache directly
+        queryClient.setQueryData(['/api/cards'], initialCards);
+        queryClient.setQueryData(['/api/cards', refreshKey], initialCards);
+        
+        console.log('Initial cards loaded:', initialCards.length);
+      } catch (error) {
+        console.error('Error loading initial cards:', error);
+      }
+    };
     
-    // Force a clean refresh when component mounts - use direct approach to avoid circular dependency
-    setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: ['/api/cards'] });
-    }, 100);
+    // Execute immediately
+    fetchInitialData();
     
     // No interval - it was causing too many refreshes and UI issues
-  }, [queryClient]); // Add queryClient to dependency array
+  }, []); // Empty dependency array - run only once on mount
   
-  // Use simpler query settings
+  // Enhanced query settings to ensure cards load on initial mount
   const { data: cards, isLoading, refetch } = useQuery<CardType[]>({
     queryKey: ['/api/cards', refreshKey],
     refetchOnWindowFocus: true,
-    staleTime: 1000, // Only refetch after 1 second 
-    refetchOnMount: true,
+    staleTime: 0, // Always consider data stale to ensure fresh fetches
+    refetchOnMount: 'always', // Always refetch when component mounts
+    retry: 3, // Retry failed requests up to 3 times
+    retryDelay: 1000, // Wait 1 second between retries
+    // Very important - this ensures data is always fetched on component mount
+    enabled: true,
   });
 
   if (isLoading) {
