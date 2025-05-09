@@ -7,31 +7,55 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle, CreditCard, Zap, Gift, BarChart3 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { AddCardDialog } from '@/components/ui/add-card-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Cards() {
   const [activeTab, setActiveTab] = useState('all');
-  // Use a single refresh trigger that doesn't auto-update
+  // Use a counter as a refresh key
   const [refreshKey, setRefreshKey] = useState(0);
+  const { toast } = useToast();
   
   // Manual refresh function
   const manualRefresh = () => {
     setRefreshKey(prev => prev + 1);
   };
   
-  // This effect will run once when the component mounts
+  // This effect runs whenever the page becomes visible
   useEffect(() => {
-    // Force a single refresh when component mounts
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        manualRefresh();
+      }
+    };
+    
+    // Force a refresh when component mounts
     const timeout = setTimeout(() => {
       manualRefresh();
     }, 500);
     
-    return () => clearTimeout(timeout);
+    // Listen for visibility changes
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearTimeout(timeout);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+  
+  // Set up an interval to refresh periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      manualRefresh();
+    }, 10000); // Refresh every 10 seconds
+    
+    return () => clearInterval(interval);
   }, []);
   
   const { data: cards, isLoading, refetch } = useQuery<CardType[]>({
     queryKey: ['/api/cards', refreshKey],
     refetchOnWindowFocus: true,
-    staleTime: 5000, // Consider data stale after 5 seconds
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: 'always', // Always refetch when mounting
   });
 
   if (isLoading) {
@@ -52,11 +76,44 @@ export default function Cards() {
           <h1 className="text-3xl font-bold">My Credit Cards</h1>
           <p className="text-gray-500">Manage your cards and maximize your benefits</p>
         </div>
-        <AddCardDialog>
-          <Button className="mt-4 md:mt-0 bg-[#1A1F71] hover:bg-[#141A5E]">
-            <PlusCircle className="mr-2 h-4 w-4" /> Add New Card
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              manualRefresh();
+              refetch();
+              toast({
+                title: "Refreshed",
+                description: "Card list has been refreshed",
+              });
+            }}
+            className="mt-4 md:mt-0"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="mr-2 h-4 w-4"
+            >
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+              <path d="M3 21v-5h5" />
+            </svg>
+            Refresh
           </Button>
-        </AddCardDialog>
+          <AddCardDialog>
+            <Button className="mt-4 md:mt-0 bg-[#1A1F71] hover:bg-[#141A5E]">
+              <PlusCircle className="mr-2 h-4 w-4" /> Add New Card
+            </Button>
+          </AddCardDialog>
+        </div>
       </div>
 
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
