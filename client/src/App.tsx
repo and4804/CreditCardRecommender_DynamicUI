@@ -11,6 +11,8 @@ import Settings from "@/pages/settings";
 import Callback from "@/pages/callback";
 import Cards from "@/pages/cards";
 import Benefits from "@/pages/benefits";
+import Travel from "@/pages/travel";
+import Shopping from "@/pages/shopping";
 import AuthPage from "@/pages/auth-page";
 import { HeaderNew } from "@/components/layout/header-new";
 import { Footer } from "@/components/layout/footer";
@@ -58,18 +60,12 @@ function Router() {
       )}/>
       <Route path="/travel" component={() => (
         <ProtectedRouteNew>
-          <div className="min-h-screen p-8">
-            <h1 className="text-2xl font-bold mb-4">Travel Page</h1>
-            <p>This page is under construction</p>
-          </div>
+          <Travel />
         </ProtectedRouteNew>
       )}/>
       <Route path="/shopping" component={() => (
         <ProtectedRouteNew>
-          <div className="min-h-screen p-8">
-            <h1 className="text-2xl font-bold mb-4">Shopping Page</h1>
-            <p>This page is under construction</p>
-          </div>
+          <Shopping />
         </ProtectedRouteNew>
       )}/>
       <Route path="/benefits" component={() => (
