@@ -17,33 +17,14 @@ export default function Cards() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Manual refresh function - more thorough now
+  // Simplified manual refresh function
   const manualRefresh = async () => {
     // Increment the refresh key to force re-render
     setRefreshKey(prev => prev + 1);
     
-    // Clear the cache for cards
-    queryClient.removeQueries({ queryKey: ['/api/cards'] });
-    
-    // Fully fetch new cards data from server
-    try {
-      // Direct network call bypassing cache
-      const response = await apiRequest('GET', '/api/cards');
-      const data = await response.json();
-      
-      // Update the cache with the new data
-      queryClient.setQueryData(['/api/cards', refreshKey + 1], data);
-      
-      // Trigger all active cards queries to refetch
-      await queryClient.refetchQueries({ 
-        queryKey: ['/api/cards'],
-        type: 'active'
-      });
-      
-      console.log('Manually fetched cards:', data.length);
-    } catch (error) {
-      console.error('Error manually refreshing cards:', error);
-    }
+    // Invalidate and refetch
+    await queryClient.invalidateQueries({ queryKey: ['/api/cards'] });
+    await refetch();
   };
   
   // This effect runs once when the component mounts
@@ -51,27 +32,20 @@ export default function Cards() {
     // Clear the previous query cache for cards
     queryClient.removeQueries({ queryKey: ['/api/cards'] });
     
-    // Force a clean refresh when component mounts
-    manualRefresh();
-    
-    // Set up a periodic refresh every 3 seconds when on this page
-    const intervalId = setInterval(() => {
-      console.log('Auto-refreshing cards data...');
+    // Force a clean refresh when component mounts - use direct approach to avoid circular dependency
+    setTimeout(() => {
       queryClient.invalidateQueries({ queryKey: ['/api/cards'] });
-    }, 3000);
+    }, 100);
     
-    return () => {
-      clearInterval(intervalId);
-    };
+    // No interval - it was causing too many refreshes and UI issues
   }, [queryClient]); // Add queryClient to dependency array
   
-  // More aggressive fetching settings for the query
+  // Use simpler query settings
   const { data: cards, isLoading, refetch } = useQuery<CardType[]>({
     queryKey: ['/api/cards', refreshKey],
-    refetchInterval: 2000, // Refetch every 2 seconds
     refetchOnWindowFocus: true,
-    staleTime: 0, // Always consider data stale
-    refetchOnMount: 'always', // Always refetch when mounting
+    staleTime: 1000, // Only refetch after 1 second 
+    refetchOnMount: true,
   });
 
   if (isLoading) {
@@ -95,13 +69,33 @@ export default function Cards() {
         <div className="flex gap-2">
           <Button 
             variant="outline"
-            onClick={() => {
-              manualRefresh();
-              refetch();
-              toast({
-                title: "Refreshed",
-                description: "Card list has been refreshed",
-              });
+            onClick={async () => {
+              try {
+                // Clear query cache entirely
+                queryClient.removeQueries({ queryKey: ['/api/cards'] });
+                
+                // Direct API call to get fresh data
+                const response = await apiRequest('GET', '/api/cards');
+                const freshData = await response.json();
+                
+                // Update cache with fresh data
+                queryClient.setQueryData(['/api/cards'], freshData);
+                
+                // Update UI by incrementing refresh key
+                setRefreshKey(prev => prev + 1);
+                
+                toast({
+                  title: "Refreshed",
+                  description: `Successfully loaded ${freshData.length} credit cards`,
+                });
+              } catch (error) {
+                console.error("Error refreshing cards:", error);
+                toast({
+                  title: "Refresh Failed",
+                  description: "There was an error refreshing your cards. Please try again.",
+                  variant: "destructive"
+                });
+              }
             }}
             className="mt-4 md:mt-0"
           >

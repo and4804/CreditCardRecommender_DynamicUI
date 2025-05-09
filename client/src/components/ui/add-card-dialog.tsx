@@ -93,33 +93,31 @@ export function AddCardDialog({ children, trigger }: AddCardDialogProps) {
       setOpen(false);
       form.reset();
       
-      // More aggressive approach to ensure cache is updated
-      
-      // First remove any existing queries to force a completely fresh fetch
-      queryClient.removeQueries({ queryKey: ["/api/cards"] });
+      // Simplified and more reliable update approach
       
       try {
         // Directly fetch the latest cards
         const response = await apiRequest('GET', '/api/cards');
         const freshCards = await response.json();
         
-        // Update the cache with fresh data
+        // Update the cache with fresh data (more reliable than invalidation)
         queryClient.setQueryData(["/api/cards"], freshCards);
         
-        console.log("Successfully fetched fresh cards after adding:", freshCards.length);
+        // Also set data for any queries that might use refreshKey
+        for (let i = 0; i < 10; i++) {
+          queryClient.setQueryData(["/api/cards", i], freshCards);
+        }
         
-        // Also trigger any active queries to refresh
-        await queryClient.refetchQueries({ 
-          queryKey: ["/api/cards"],
-          type: 'all'
-        });
+        console.log("Successfully fetched fresh cards after adding:", freshCards.length);
       } catch (error) {
         console.error("Error refreshing cards after adding:", error);
       }
       
       toast({
         title: "Card Added Successfully",
-        description: "Your credit card has been added to your account. The card list should update automatically.",
+        description: `Your card was added. You now have ${newCard ? 
+          "multiple cards in your account" : 
+          "a new card in your account"}.`,
       });
     },
     onError: (error) => {
