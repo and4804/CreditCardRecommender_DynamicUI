@@ -99,7 +99,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/cards", async (req: Request, res: Response) => {
     // For demo purposes, always use userId 1
     const userId = 1;
+    console.log("[express] Fetching credit cards for userId:", userId);
     const cards = await storage.getCreditCards(userId);
+    console.log("[express] Found credit cards:", cards.length);
     res.json(cards);
   });
   
@@ -108,6 +110,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // For demo purposes, use userId 1 if not provided
       const userId = req.body.userId || 1;
+      
+      console.log("[express] Adding new credit card for userId:", userId);
+      console.log("[express] Card details:", {
+        cardName: req.body.cardName,
+        issuer: req.body.issuer,
+        cardNumber: req.body.cardNumber ? "****" + req.body.cardNumber.slice(-4) : undefined,
+        pointsBalance: req.body.pointsBalance,
+        expireDate: req.body.expireDate,
+        cardType: req.body.cardType,
+        color: req.body.color || "primary"
+      });
       
       // Create the credit card
       const newCard = await storage.createCreditCard({
@@ -121,6 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         color: req.body.color || "primary"
       });
       
+      console.log("[express] Successfully created new card with ID:", newCard.id);
       res.status(201).json(newCard);
     } catch (error) {
       console.error("Error creating credit card:", error);
