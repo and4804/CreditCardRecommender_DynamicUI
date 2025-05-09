@@ -18,6 +18,9 @@ export default function Home() {
     // We want to start a new chat on each visit
     const initializeChat = async () => {
       try {
+        // First clear the chat explicitly
+        await clearChat();
+        // Then start a new chat session
         await startNewChat();
       } catch (error) {
         console.error("Failed to start new chat on page load:", error);
