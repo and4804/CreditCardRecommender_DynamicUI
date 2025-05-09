@@ -116,4 +116,8 @@ export class DatabaseStorage implements IStorage {
     const [newMessage] = await db.insert(chatMessages).values(message).returning();
     return newMessage;
   }
+
+  async clearChatMessages(userId: number): Promise<void> {
+    await db.delete(chatMessages).where(eq(chatMessages.userId, userId));
+  }
 }

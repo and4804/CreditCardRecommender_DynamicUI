@@ -43,6 +43,7 @@ export interface IStorage {
   // Chat Message methods
   getChatMessages(userId: number): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  clearChatMessages(userId: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
