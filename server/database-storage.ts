@@ -57,6 +57,21 @@ export class DatabaseStorage implements IStorage {
     const [newCard] = await db.insert(creditCards).values(card).returning();
     return newCard;
   }
+  
+  async deleteCreditCard(id: number): Promise<void> {
+    console.log(`[DatabaseStorage] Attempting to delete credit card with ID: ${id}`);
+    
+    // First check if the card exists
+    const existingCard = await this.getCreditCard(id);
+    if (!existingCard) {
+      console.log(`[DatabaseStorage] Credit card with ID ${id} not found for deletion`);
+      throw new Error(`Credit card with ID ${id} not found`);
+    }
+    
+    // Delete the card
+    await db.delete(creditCards).where(eq(creditCards.id, id));
+    console.log(`[DatabaseStorage] Successfully deleted credit card with ID: ${id}`);
+  }
 
   // Flight methods
   async getFlights(): Promise<Flight[]> {
