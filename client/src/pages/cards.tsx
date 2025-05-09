@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreditCard as CardType } from '@shared/schema';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,35 +8,67 @@ import { PlusCircle, CreditCard, Zap, Gift, BarChart3 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { AddCardDialog } from '@/components/ui/add-card-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 export default function Cards() {
   const [activeTab, setActiveTab] = useState('all');
   // Use a counter as a refresh key
   const [refreshKey, setRefreshKey] = useState(0);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
-  // Manual refresh function
-  const manualRefresh = () => {
+  // Manual refresh function - more thorough now
+  const manualRefresh = async () => {
+    // Increment the refresh key to force re-render
     setRefreshKey(prev => prev + 1);
+    
+    // Clear the cache for cards
+    queryClient.removeQueries({ queryKey: ['/api/cards'] });
+    
+    // Fully fetch new cards data from server
+    try {
+      // Direct network call bypassing cache
+      const response = await apiRequest('GET', '/api/cards');
+      const data = await response.json();
+      
+      // Update the cache with the new data
+      queryClient.setQueryData(['/api/cards', refreshKey + 1], data);
+      
+      // Trigger all active cards queries to refetch
+      await queryClient.refetchQueries({ 
+        queryKey: ['/api/cards'],
+        type: 'active'
+      });
+      
+      console.log('Manually fetched cards:', data.length);
+    } catch (error) {
+      console.error('Error manually refreshing cards:', error);
+    }
   };
   
   // This effect runs once when the component mounts
   useEffect(() => {
-    // Do a single refresh when component mounts to ensure we have latest data
-    const timeout = setTimeout(() => {
-      manualRefresh();
-    }, 500);
+    // Clear the previous query cache for cards
+    queryClient.removeQueries({ queryKey: ['/api/cards'] });
+    
+    // Force a clean refresh when component mounts
+    manualRefresh();
+    
+    // Set up a periodic refresh every 3 seconds when on this page
+    const intervalId = setInterval(() => {
+      console.log('Auto-refreshing cards data...');
+      queryClient.invalidateQueries({ queryKey: ['/api/cards'] });
+    }, 3000);
     
     return () => {
-      clearTimeout(timeout);
+      clearInterval(intervalId);
     };
-  }, []);
+  }, [queryClient]); // Add queryClient to dependency array
   
-  // Remove the automatic refresh interval as it was too aggressive
-  // We'll rely on the initial load and manual refresh button instead
-  
+  // More aggressive fetching settings for the query
   const { data: cards, isLoading, refetch } = useQuery<CardType[]>({
     queryKey: ['/api/cards', refreshKey],
+    refetchInterval: 2000, // Refetch every 2 seconds
     refetchOnWindowFocus: true,
     staleTime: 0, // Always consider data stale
     refetchOnMount: 'always', // Always refetch when mounting
