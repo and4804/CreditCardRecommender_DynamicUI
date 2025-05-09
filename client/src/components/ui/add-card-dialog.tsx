@@ -89,21 +89,32 @@ export function AddCardDialog({ children, trigger }: AddCardDialogProps) {
       return response.json();
     },
     onSuccess: async () => {
-      // Force immediate invalidation and refetch with stronger cache busting
-      await queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      // Reset form and close dialog first for better UX
+      setOpen(false);
+      form.reset();
+      
+      // Force cache invalidation using different approaches for redundancy
+      queryClient.removeQueries({ queryKey: ['/api/cards'] });
+      await queryClient.invalidateQueries({ 
+        queryKey: ["/api/cards"],
+        refetchType: 'all'
+      });
+      
+      // Force explicit refetches of active queries
       await queryClient.refetchQueries({ 
         queryKey: ["/api/cards"],
-        type: 'active',
+        type: 'all',
         exact: false
       });
       
-      // Refetch one more time with a small delay to ensure data is fresh
+      // Refetch again after a delay to ensure data is completely fresh
       setTimeout(async () => {
-        await queryClient.refetchQueries({ queryKey: ["/api/cards"] });
-      }, 500);
+        await queryClient.refetchQueries({ 
+          queryKey: ["/api/cards"],
+          type: 'all'
+        });
+      }, 1000);
       
-      setOpen(false);
-      form.reset();
       toast({
         title: "Card Added",
         description: "Your credit card has been added successfully. Please check the cards list.",
