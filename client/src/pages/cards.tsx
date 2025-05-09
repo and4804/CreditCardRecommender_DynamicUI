@@ -334,6 +334,27 @@ export default function Cards() {
           </div>
         </TabsContent>
       </Tabs>
+      
+      {/* Card Details Dialog */}
+      <CardDetailsDialog 
+        cardId={selectedCardId} 
+        isOpen={isDetailsOpen} 
+        onClose={() => setIsDetailsOpen(false)} 
+      />
+      
+      {/* Card Manage Dialog */}
+      <CardManageDialog 
+        cardId={selectedCardId} 
+        isOpen={isManageOpen} 
+        onClose={() => {
+          setIsManageOpen(false);
+          // Small delay to prevent flickering
+          setTimeout(() => {
+            // Refresh cards after dialog closes (in case a card was deleted)
+            manualRefresh();
+          }, 300);
+        }} 
+      />
     </div>
   );
 }
