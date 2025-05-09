@@ -36,13 +36,45 @@ export function CardManageDialog({ cardId, isOpen, onClose }: CardManageDialogPr
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [card, setCard] = useState<CreditCardType | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   
-  const { data: card, isLoading, error } = useQuery<CreditCardType>({
-    queryKey: cardId ? [`/api/cards/${cardId}`] : ["/api/cards/null"],
-    enabled: isOpen && cardId !== null,
-    refetchOnWindowFocus: false,
-    staleTime: 0
-  });
+  // Fetch card data directly when dialog opens
+  useEffect(() => {
+    async function fetchCardDetails() {
+      if (!isOpen || cardId === null) return;
+      
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        // Try to get from cache first
+        const cachedCard = queryClient.getQueryData<CreditCardType>([`/api/cards/${cardId}`]);
+        
+        if (cachedCard) {
+          setCard(cachedCard);
+          setIsLoading(false);
+          return;
+        }
+        
+        // If not in cache, fetch directly
+        const response = await apiRequest('GET', `/api/cards/${cardId}`);
+        const cardData = await response.json();
+        
+        // Update cache and state
+        queryClient.setQueryData([`/api/cards/${cardId}`], cardData);
+        setCard(cardData);
+      } catch (err) {
+        console.error("Error fetching card details for management:", err);
+        setError(err instanceof Error ? err : new Error("Failed to load card information"));
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchCardDetails();
+  }, [isOpen, cardId, queryClient]);
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
