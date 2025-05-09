@@ -4,9 +4,11 @@ import { CreditCard as CardType } from '@shared/schema';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, CreditCard, Zap, Gift, BarChart3 } from 'lucide-react';
+import { PlusCircle, CreditCard, Zap, Gift, BarChart3, Eye, Settings } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { AddCardDialog } from '@/components/ui/add-card-dialog';
+import { CardDetailsDialog } from '@/components/ui/card-details-dialog';
+import { CardManageDialog } from '@/components/ui/card-manage-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -14,6 +16,9 @@ export default function Cards() {
   const [activeTab, setActiveTab] = useState('all');
   // Use a counter as a refresh key
   const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isManageOpen, setIsManageOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -184,11 +189,27 @@ export default function Cards() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-between pt-0">
-                    <Button variant="ghost" size="sm" className="text-[#1A1F71]">
-                      View Details
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-[#1A1F71]"
+                      onClick={() => {
+                        setSelectedCardId(card.id);
+                        setIsDetailsOpen(true);
+                      }}
+                    >
+                      <Eye className="mr-1 h-3 w-3" /> View Details
                     </Button>
-                    <Button variant="outline" size="sm" className="text-[#1A1F71]">
-                      Manage
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-[#1A1F71]"
+                      onClick={() => {
+                        setSelectedCardId(card.id);
+                        setIsManageOpen(true);
+                      }}
+                    >
+                      <Settings className="mr-1 h-3 w-3" /> Manage
                     </Button>
                   </CardFooter>
                 </Card>
