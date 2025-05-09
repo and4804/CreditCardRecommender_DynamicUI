@@ -121,13 +121,13 @@ export function ChatInterface() {
 
   return (
     <div className="w-full md:w-2/5 bg-white rounded-xl shadow-md overflow-hidden flex flex-col">
-      <div className="bg-[#2A3080] p-4 text-white">
+      <div className="bg-[#1A1F71] p-4 text-white">
         <div className="flex justify-between items-center mb-2">
           <h2 className="font-sf-pro font-semibold">Your AI Travel Assistant</h2>
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-white hover:bg-[#3A4090]"
+            className="text-white hover:bg-[#2A3080]"
             onClick={handleNewChat}
           >
             <Plus className="h-4 w-4 mr-1" />
@@ -139,11 +139,11 @@ export function ChatInterface() {
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
         <TabsList className="grid grid-cols-2 px-4 pt-2 bg-transparent">
-          <TabsTrigger value="chat" className="flex items-center">
+          <TabsTrigger value="chat" className="flex items-center text-sm">
             <MessageSquare className="h-4 w-4 mr-2" />
             Current Chat
           </TabsTrigger>
-          <TabsTrigger value="recent" className="flex items-center">
+          <TabsTrigger value="recent" className="flex items-center text-sm">
             <History className="h-4 w-4 mr-2" />
             Recent Chats
           </TabsTrigger>

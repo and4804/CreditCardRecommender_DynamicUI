@@ -1,13 +1,31 @@
+import { useEffect } from "react";
 import { CardDisplay } from "@/components/ui/card-display";
 import { ChatInterface } from "@/components/ui/chat-interface";
 import { FlightInterface } from "@/components/ui/flight-interface";
 import { HotelInterface } from "@/components/ui/hotel-interface";
 import { ShoppingInterface } from "@/components/ui/shopping-interface";
 import { useInterface } from "@/lib/contexts/interface-context";
+import { useChat } from "@/lib/contexts/chat-context";
 import { PlaneIcon, HotelIcon, ShoppingBagIcon } from "lucide-react";
+import { clearChat } from "@/lib/openai";
 
 export default function Home() {
   const { activeInterface } = useInterface();
+  const { startNewChat } = useChat();
+  
+  // Start a new chat when the page loads
+  useEffect(() => {
+    // We want to start a new chat on each visit
+    const initializeChat = async () => {
+      try {
+        await startNewChat();
+      } catch (error) {
+        console.error("Failed to start new chat on page load:", error);
+      }
+    };
+    
+    initializeChat();
+  }, []);
 
   return (
     <div className="container mx-auto p-4">

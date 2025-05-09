@@ -288,7 +288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const welcomeMessage = insertChatMessageSchema.parse({
       userId,
       role: "assistant",
-      content: "Hello James! I'm your CardConcierge. I see you have premium Indian credit cards including HDFC Infinia, ICICI Emeralde, and SBI Elite. How can I help you maximize your card benefits for travel or shopping today? Would you like recommendations for flights, hotels, or perhaps help finding the best deals on electronics?",
+      content: "Hi there! How can I assist you today? Are you planning a trip, looking for hotel recommendations, or perhaps some help with shopping? Let me know how I can help you maximize your benefits with your Regalia by Axis Bank card!",
       timestamp: new Date().toISOString()
     });
     
