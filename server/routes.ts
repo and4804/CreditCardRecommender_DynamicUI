@@ -280,11 +280,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Clear chat history
   app.delete("/api/chat", async (req: Request, res: Response) => {
-    // This would normally delete chat messages from storage
-    // But our in-memory storage doesn't support this yet
-    // Instead, we'll add a welcome message
     const userId = 1;
     
+    // First, actually clear all existing chat messages
+    await storage.clearChatMessages(userId);
+    
+    // Then add a welcome message
     const welcomeMessage = insertChatMessageSchema.parse({
       userId,
       role: "assistant",
