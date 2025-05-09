@@ -105,6 +105,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(cards);
   });
   
+  // Get a specific card by ID
+  app.get("/api/cards/:id", async (req: Request, res: Response) => {
+    try {
+      const cardId = parseInt(req.params.id, 10);
+      if (isNaN(cardId)) {
+        return res.status(400).json({ error: "Invalid card ID" });
+      }
+      
+      console.log(`[express] Fetching details for card ID: ${cardId}`);
+      
+      const card = await storage.getCreditCard(cardId);
+      
+      if (!card) {
+        console.log(`[express] Card not found with ID: ${cardId}`);
+        return res.status(404).json({ error: "Card not found" });
+      }
+      
+      // For demo purposes, only check if it belongs to userId 1
+      if (card.userId !== 1) {
+        console.log(`[express] Card belongs to userId ${card.userId}, not authorized`);
+        return res.status(403).json({ error: "You don't have permission to view this card" });
+      }
+      
+      console.log(`[express] Successfully retrieved card ID: ${cardId}`);
+      res.json(card);
+    } catch (error) {
+      console.error(`[express] Error fetching card details: ${(error as Error).message}`);
+      res.status(500).json({ error: "Failed to fetch credit card details" });
+    }
+  });
+  
   // Add a credit card
   app.post("/api/cards", async (req: Request, res: Response) => {
     try {
@@ -142,6 +173,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Failed to create credit card", 
         error: (error as Error).message 
       });
+    }
+  });
+  
+  // Delete a credit card
+  app.delete("/api/cards/:id", async (req: Request, res: Response) => {
+    try {
+      const cardId = parseInt(req.params.id, 10);
+      if (isNaN(cardId)) {
+        return res.status(400).json({ error: "Invalid card ID" });
+      }
+      
+      console.log(`[express] Attempting to delete card ID: ${cardId}`);
+      
+      // First, check if the card exists
+      const card = await storage.getCreditCard(cardId);
+      
+      if (!card) {
+        console.log(`[express] Card not found with ID: ${cardId}`);
+        return res.status(404).json({ error: "Card not found" });
+      }
+      
+      // For demo purposes, only check if it belongs to userId 1
+      if (card.userId !== 1) {
+        console.log(`[express] Card belongs to userId ${card.userId}, not authorized to delete`);
+        return res.status(403).json({ error: "You don't have permission to delete this card" });
+      }
+      
+      // Delete the card
+      await storage.deleteCreditCard(cardId);
+      
+      console.log(`[express] Successfully deleted card ID: ${cardId}`);
+      res.status(200).json({ message: "Card deleted successfully" });
+    } catch (error) {
+      console.error(`[express] Error deleting card: ${(error as Error).message}`);
+      res.status(500).json({ error: "Failed to delete credit card" });
     }
   });
   
