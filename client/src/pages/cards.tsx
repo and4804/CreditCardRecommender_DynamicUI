@@ -24,12 +24,27 @@ export default function Cards() {
   
   // Simplified manual refresh function
   const manualRefresh = async () => {
-    // Increment the refresh key to force re-render
-    setRefreshKey(prev => prev + 1);
-    
-    // Invalidate and refetch
-    await queryClient.invalidateQueries({ queryKey: ['/api/cards'] });
-    await refetch();
+    try {
+      // Direct API call for fresh data
+      const response = await apiRequest('GET', '/api/cards');
+      const freshCards = await response.json();
+      
+      // Update the React Query cache with fresh data
+      queryClient.setQueryData(['/api/cards'], freshCards);
+      queryClient.setQueryData(['/api/cards', refreshKey], freshCards);
+      
+      console.log('Successfully fetched fresh cards after adding:', freshCards.length);
+      
+      // Use the refresh key to trigger re-render only after successful fetch
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.error('Error refreshing cards:', error);
+      toast({
+        title: "Error refreshing cards",
+        description: "Failed to refresh card data. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   // This effect runs once when the component first mounts
