@@ -23,6 +23,7 @@ export interface IStorage {
   getCreditCards(userId: number): Promise<CreditCard[]>;
   getCreditCard(id: number): Promise<CreditCard | undefined>;
   createCreditCard(card: InsertCreditCard): Promise<CreditCard>;
+  deleteCreditCard(id: number): Promise<void>;
 
   // Flight methods
   getFlights(): Promise<Flight[]>;
@@ -427,6 +428,16 @@ export class MemStorage implements IStorage {
     };
     this.creditCards.set(id, newCard);
     return newCard;
+  }
+  
+  async deleteCreditCard(id: number): Promise<void> {
+    if (this.creditCards.has(id)) {
+      this.creditCards.delete(id);
+      console.log(`[MemStorage] Deleted credit card with ID: ${id}`);
+    } else {
+      console.log(`[MemStorage] Credit card with ID ${id} not found for deletion`);
+      throw new Error(`Credit card with ID ${id} not found`);
+    }
   }
 
   // Flight methods
