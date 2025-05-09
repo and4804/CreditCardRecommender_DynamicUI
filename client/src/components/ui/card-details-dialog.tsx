@@ -23,8 +23,10 @@ interface CardDetailsDialogProps {
 
 export function CardDetailsDialog({ cardId, isOpen, onClose }: CardDetailsDialogProps) {
   const { data: card, isLoading, error } = useQuery<CreditCardType>({
-    queryKey: ["/api/cards", cardId],
+    queryKey: cardId ? [`/api/cards/${cardId}`] : ["/api/cards/null"],
     enabled: isOpen && cardId !== null,
+    refetchOnWindowFocus: false,
+    staleTime: 0
   });
 
   const getCardGradient = (color: string) => {

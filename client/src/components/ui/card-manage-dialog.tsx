@@ -38,8 +38,10 @@ export function CardManageDialog({ cardId, isOpen, onClose }: CardManageDialogPr
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
   const { data: card, isLoading, error } = useQuery<CreditCardType>({
-    queryKey: ["/api/cards", cardId],
+    queryKey: cardId ? [`/api/cards/${cardId}`] : ["/api/cards/null"],
     enabled: isOpen && cardId !== null,
+    refetchOnWindowFocus: false,
+    staleTime: 0
   });
 
   const deleteMutation = useMutation({
@@ -48,7 +50,14 @@ export function CardManageDialog({ cardId, isOpen, onClose }: CardManageDialogPr
       return res.json();
     },
     onSuccess: () => {
+      // Invalidate both the list and the individual card queries
       queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
+      
+      // Invalidate the specific card query too
+      if (cardId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/cards/${cardId}`] });
+      }
+      
       toast({
         title: "Card Removed",
         description: "Your credit card has been successfully removed.",
