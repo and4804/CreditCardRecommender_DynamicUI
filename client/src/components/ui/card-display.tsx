@@ -2,11 +2,46 @@ import { useQuery } from "@tanstack/react-query";
 import { CreditCard } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { CreditCard as CreditCardIcon, LogIn } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { Link } from "wouter";
 
 export function CardDisplay() {
+  const { isAuthenticated } = useAuth();
   const { data: cards, isLoading } = useQuery<CreditCard[]>({
     queryKey: ["/api/cards"],
+    // Skip query if not authenticated
+    enabled: isAuthenticated,
   });
+
+  if (!isAuthenticated) {
+    return (
+      <div className="mb-6 bg-white p-6 rounded-lg shadow-md">
+        <h2 className="font-sf-pro text-lg font-semibold mb-3">Your Active Credit Cards</h2>
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 text-center">
+          <div className="mx-auto w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mb-3">
+            <CreditCardIcon className="h-6 w-6 text-[#1A1F71]" />
+          </div>
+          <h3 className="text-lg font-medium mb-2">Login to view your cards</h3>
+          <p className="text-slate-600 mb-4">
+            Sign in or register to unlock personalized credit card offers and maximize your rewards.
+          </p>
+          <div className="flex justify-center space-x-4">
+            <Button asChild variant="outline">
+              <Link to="/auth">
+                <LogIn className="h-4 w-4 mr-2" />
+                Login
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/auth">Register</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
