@@ -22,21 +22,37 @@ export default function Cards() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Simplified manual refresh function
+  // Improved manual refresh function
   const manualRefresh = async () => {
     try {
       // Direct API call for fresh data
       const response = await apiRequest('GET', '/api/cards');
       const freshCards = await response.json();
       
-      // Update the React Query cache with fresh data
+      // Update all possible cache keys
       queryClient.setQueryData(['/api/cards'], freshCards);
-      queryClient.setQueryData(['/api/cards', refreshKey], freshCards);
       
-      console.log('Successfully fetched fresh cards after adding:', freshCards.length);
+      // Also update for current and next refresh key (for all query patterns)
+      queryClient.setQueryData(['/api/cards', refreshKey], freshCards);
+      queryClient.setQueryData(['/api/cards', refreshKey + 1], freshCards);
+      
+      // Update numerically indexed cache keys too (0-5 to cover most cases)
+      for (let i = 0; i <= 5; i++) {
+        queryClient.setQueryData(['/api/cards', i], freshCards);
+      }
+      
+      console.log('Successfully fetched fresh cards:', freshCards.length);
       
       // Use the refresh key to trigger re-render only after successful fetch
       setRefreshKey(prev => prev + 1);
+      
+      // Notification only when explicitly refreshing
+      if (freshCards.length === 0) {
+        toast({
+          title: "No cards found",
+          description: "You don't have any credit cards yet. Add a card to get started.",
+        });
+      }
     } catch (error) {
       console.error('Error refreshing cards:', error);
       toast({
@@ -107,17 +123,18 @@ export default function Cards() {
             variant="outline"
             onClick={async () => {
               try {
-                // Clear query cache entirely
-                queryClient.removeQueries({ queryKey: ['/api/cards'] });
-                
                 // Direct API call to get fresh data
                 const response = await apiRequest('GET', '/api/cards');
                 const freshData = await response.json();
                 
-                // Update cache with fresh data
+                // Update cache with fresh data - including all possible cache keys
                 queryClient.setQueryData(['/api/cards'], freshData);
+                queryClient.setQueryData(['/api/cards', refreshKey], freshData);
+                queryClient.setQueryData(['/api/cards', refreshKey + 1], freshData);
                 
-                // Update UI by incrementing refresh key
+                console.log("Manual refresh - loaded cards:", freshData.length);
+                
+                // Update UI by incrementing refresh key AFTER updating the cache
                 setRefreshKey(prev => prev + 1);
                 
                 toast({

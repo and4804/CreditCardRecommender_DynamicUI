@@ -81,19 +81,35 @@ export function CardManageDialog({ cardId, isOpen, onClose }: CardManageDialogPr
       const res = await apiRequest("DELETE", `/api/cards/${id}`);
       return res.json();
     },
-    onSuccess: () => {
-      // Invalidate both the list and the individual card queries
-      queryClient.invalidateQueries({ queryKey: ["/api/cards"] });
-      
-      // Invalidate the specific card query too
-      if (cardId) {
-        queryClient.invalidateQueries({ queryKey: [`/api/cards/${cardId}`] });
+    onSuccess: async () => {
+      // Don't just invalidate, fetch fresh data to ensure cache is updated correctly
+      try {
+        // Direct API call to get fresh data
+        const response = await apiRequest('GET', '/api/cards');
+        const freshCards = await response.json();
+        
+        // Update the cache with the fresh data
+        queryClient.setQueryData(['/api/cards'], freshCards);
+        
+        // Also update any other cache keys that might be using the cards data
+        queryClient.setQueryData(['/api/cards', 0], freshCards);
+        queryClient.setQueryData(['/api/cards', 1], freshCards);
+        
+        console.log("Card deleted. Fetched fresh cards count:", freshCards.length);
+        
+        toast({
+          title: "Card Removed",
+          description: "Your credit card has been successfully removed.",
+        });
+      } catch (error) {
+        console.error("Error refreshing cards after deletion:", error);
+        // Still notify the user of success since the deletion worked
+        toast({
+          title: "Card Removed",
+          description: "Your credit card was removed, but we couldn't refresh the list automatically.",
+        });
       }
       
-      toast({
-        title: "Card Removed",
-        description: "Your credit card has been successfully removed.",
-      });
       onClose();
     },
     onError: (error: Error) => {
