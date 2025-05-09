@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, CreditCard } from "lucide-react";
 import { CreditCard as CreditCardType } from "@shared/schema";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { apiRequest } from "@/lib/queryClient";
 
 interface CardDetailsDialogProps {
   cardId: number | null;
@@ -22,12 +23,46 @@ interface CardDetailsDialogProps {
 }
 
 export function CardDetailsDialog({ cardId, isOpen, onClose }: CardDetailsDialogProps) {
-  const { data: card, isLoading, error } = useQuery<CreditCardType>({
-    queryKey: cardId ? [`/api/cards/${cardId}`] : ["/api/cards/null"],
-    enabled: isOpen && cardId !== null,
-    refetchOnWindowFocus: false,
-    staleTime: 0
-  });
+  const [card, setCard] = useState<CreditCardType | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const queryClient = useQueryClient();
+  
+  // Fetch card data directly when dialog opens
+  useEffect(() => {
+    async function fetchCardDetails() {
+      if (!isOpen || cardId === null) return;
+      
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        // Try to get from cache first
+        const cachedCard = queryClient.getQueryData<CreditCardType>([`/api/cards/${cardId}`]);
+        
+        if (cachedCard) {
+          setCard(cachedCard);
+          setIsLoading(false);
+          return;
+        }
+        
+        // If not in cache, fetch directly
+        const response = await apiRequest('GET', `/api/cards/${cardId}`);
+        const cardData = await response.json();
+        
+        // Update cache and state
+        queryClient.setQueryData([`/api/cards/${cardId}`], cardData);
+        setCard(cardData);
+      } catch (err) {
+        console.error("Error fetching card details:", err);
+        setError(err instanceof Error ? err : new Error("Failed to load card details"));
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchCardDetails();
+  }, [isOpen, cardId, queryClient]);
 
   const getCardGradient = (color: string) => {
     switch (color) {
