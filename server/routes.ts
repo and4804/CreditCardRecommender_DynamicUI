@@ -6,15 +6,98 @@ import { z } from "zod";
 import { setupSessions, setupAuth, isAuthenticated } from "./auth";
 import { insertChatMessageSchema } from "@shared/schema";
 
-// Initialize OpenAI with API key from environment
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "sk-dummy-key-for-development" });
+// Check if we're using memory storage
+const useMemStorage = process.env.USE_MEM_STORAGE === 'true';
+
+// Initialize OpenAI with API key from environment or use a mock client in memory mode
+let openai: OpenAI;
+const apiKey = process.env.OPENAI_API_KEY;
+
+if (!apiKey || apiKey === 'mock-key' || apiKey === '') {
+  console.log('Using mock OpenAI client');
+  // Create a mock OpenAI client
+  openai = {
+    chat: {
+      completions: {
+        create: async (params: any) => {
+          // Check if this is a context analysis call or a chat completion call
+          const isContextAnalysis = params.messages?.length === 1 && 
+                                  params.messages[0].role === 'user' && 
+                                  params.messages[0].content.includes('ANALYSIS INSTRUCTIONS');
+          
+          if (isContextAnalysis) {
+            // For context analysis, return structured JSON
+            return {
+              choices: [
+                {
+                  message: {
+                    content: JSON.stringify({
+                      context: "flight",
+                      intent: "search_flights",
+                      reasoning: "The user is asking about flight options which indicates a flight booking intent.",
+                      confidence: "high",
+                      needs_clarification: false,
+                      entities: {
+                        location: {
+                          departure: "Mumbai",
+                          destination: "Dubai"
+                        },
+                        dates: {
+                          start: "2023-12-15",
+                          end: "2023-12-22"
+                        },
+                        travelers: 2,
+                        cardPreference: "HDFC Infinia",
+                        secondary_intents: []
+                      }
+                    })
+                  }
+                }
+              ]
+            };
+          } else {
+            // For regular chat responses, return a helpful message
+            return {
+              choices: [
+                {
+                  message: {
+                    content: `Based on your travel plans to Dubai, your HDFC Infinia card would be the best choice for booking flights. 
+
+Here's why:
+1. The HDFC Infinia offers 5% cashback on flight bookings, which would save you approximately ₹1,140 on a typical Mumbai-Dubai flight.
+2. You'll also earn 4X reward points (around 4,560 points) which can be redeemed for future travel.
+3. The card provides complimentary airport lounge access at both Mumbai and Dubai airports.
+
+For your Dubai trip between December 15-22, I'd recommend checking out our flight booking interface, where you can see all available options with your card benefits already calculated.
+
+Would you also like me to help with hotel recommendations for your Dubai stay?`
+                  }
+                }
+              ]
+            };
+          }
+        }
+      }
+    }
+  } as unknown as OpenAI;
+} else {
+  console.log('Using real OpenAI client with API key');
+  openai = new OpenAI({ apiKey });
+}
 
 // Define a type for context analysis response
 type ContextAnalysis = {
   context: "flight" | "hotel" | "shopping" | "general";
   intent: string;
+  reasoning?: string;
+  confidence?: "high" | "medium" | "low";
+  needs_clarification?: boolean;
+  clarification_question?: string;
   entities: {
-    location?: string;
+    location?: {
+      departure?: string;
+      destination?: string;
+    };
     dates?: {
       start?: string;
       end?: string;
@@ -23,6 +106,7 @@ type ContextAnalysis = {
     cardPreference?: string;
     budget?: string;
     category?: string;
+    secondary_intents?: string[];
   };
 };
 
@@ -213,8 +297,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Get flights
   app.get("/api/flights", async (req: Request, res: Response) => {
-    const flights = await storage.getFlights();
-    res.json(flights);
+    try {
+      console.log("[express] Fetching flights data");
+      const flights = await storage.getFlights();
+      console.log(`[express] Successfully retrieved ${flights.length} flights`);
+      
+      // Add CORS headers for local development
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET');
+      res.header('Access-Control-Allow-Headers', 'Content-Type');
+      
+      res.json(flights);
+    } catch (error) {
+      console.error("[express] Error fetching flights:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch flights data",
+        message: (error as Error).message
+      });
+    }
   });
   
   // Get hotels
@@ -277,42 +377,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         // Create a dynamic system prompt based on the conversation context and user's cards
-        let systemPrompt = `You are CardConcierge, an AI-powered travel and shopping assistant that helps users maximize their credit card benefits.
-        Your goal is to create a conversational, step-by-step planning experience that collects all necessary information.
-        
-        Context: ${contextAnalysis.context}
-        Intent: ${contextAnalysis.intent}
-        
-        THE USER HAS THE FOLLOWING CREDIT CARDS:
-        ${cardContext}
-        
-        MAKE RECOMMENDATIONS BASED ON THESE SPECIFIC CARDS. Reference the actual cards by name in your responses.
-        
-        IMPORTANT CONVERSATION GUIDELINES:
-        
-        1. For FLIGHT bookings:
-           - If user hasn't specified travel dates, ask for them
-           - If user hasn't specified number of passengers, ask for them
-           - If user hasn't specified preferred time of day, ask for preferences
-           - After collecting all necessary flight details, suggest the best credit card from the user's cards to use
-           - After completing flight conversation, ask if they need hotel recommendations for their destination
-           
-        2. For HOTEL bookings:
-           - If user hasn't specified check-in/check-out dates, ask for them
-           - If user hasn't specified number of guests, ask for them
-           - If user hasn't specified any preferences (area, amenities), ask for them
-           - After collecting all necessary hotel details, suggest the best credit card from the user's cards to use
-           - After hotel conversation, ask if they need shopping or dining recommendations for their destination
-           
-        3. For SHOPPING assistance:
-           - If user is looking for a specific product, ask for details about their preferences
-           - If user hasn't specified a budget, ask for a range
-           - After understanding their shopping needs, recommend the best credit card from the user's cards to maximize rewards
-           
-        Always maintain a helpful, conversational tone. Ask one question at a time to avoid overwhelming the user.
-        After completing one stage of planning, guide them to the next logical step in their journey.
-        
-        Remember that this user is from India and your recommendations should be tailored for Indian credit cards and traveling from India.`;
+        let systemPrompt = `You are CardConcierge, an AI-powered assistant for the Credit Card Benefits Maximizer that helps users identify which credit cards offer the best benefits for their planned activities.
+
+Context: ${contextAnalysis.context}
+Intent: ${contextAnalysis.intent}
+
+THE USER HAS THE FOLLOWING CREDIT CARDS:
+${cardContext}
+
+MAKE RECOMMENDATIONS BASED ON THESE SPECIFIC CARDS. Reference the actual cards by name in your responses.
+
+KEY RESPONSIBILITIES:
+1. IDENTIFY the primary activity type(s) from user messages: FLIGHT, HOTEL, or SHOPPING
+2. For AMBIGUOUS queries, ask ONLY the minimal clarifying questions needed to determine the activity type
+3. USE CHAIN-OF-THOUGHT REASONING to explain your recommendations step-by-step
+4. EXPLAIN which card benefits apply to each identified activity
+5. REMEMBER that specialized UI components will collect detailed booking information, so focus on INTENT rather than details
+
+INTENT-SPECIFIC GUIDANCE:
+
+1. For FLIGHT intents:
+   - RECOGNIZE but DO NOT ask for detailed flight information - the flight booking UI will collect this
+   - EXPLAIN which card offers the best benefits for flights (miles, lounge access, travel insurance)
+   - After identifying flight intent, guide user to the flight booking UI
+   - SUGGEST considering hotel bookings at their destination
+   
+2. For HOTEL intents:
+   - RECOGNIZE but DO NOT ask for detailed hotel preferences - the hotel booking UI will collect this
+   - EXPLAIN which card offers the best benefits for hotel stays (free nights, status benefits, etc.)
+   - After identifying hotel intent, guide user to the hotel booking UI
+   - SUGGEST considering shopping or dining at their destination
+   
+3. For SHOPPING intents:
+   - RECOGNIZE broad product categories but DO NOT ask for detailed product specifications
+   - EXPLAIN which card offers the best benefits for their shopping category
+   - After identifying shopping intent, guide user to the shopping UI
+   
+Always maintain a helpful, conversational tone. Use step-by-step reasoning to explain credit card benefits clearly. Guide the user to the appropriate specialized UI for each intent.
+
+Remember that this user is from India and your recommendations should be tailored for Indian credit cards and traveling from India.`;
 
         const response = await openai.chat.completions.create({
           model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
@@ -389,37 +492,46 @@ async function analyzeMessageContext(message: string, chatHistory: any[]): Promi
     const contextMessages = chatHistory.slice(-8); // Get more context messages (last 8)
     
     const prompt = `
-      Analyze the following user message in the context of a travel and credit card benefits assistant that guides users through step-by-step travel planning and shopping:
+      Analyze the following user message in the context of a credit card benefits assistant that helps users maximize rewards for travel and shopping:
       
       "${message}"
       
       ${contextMessages.length > 0 ? `Recent conversation context:
       ${contextMessages.map(msg => `${msg.role}: ${msg.content}`).join('\n')}` : 'No recent conversation.'}
       
-      CONTEXT ANALYSIS INSTRUCTIONS:
+      ANALYSIS INSTRUCTIONS:
       
-      1. For flight inquiries:
-         - If this is a NEW flight query, set context to "flight"
-         - If user is CONTINUING a flight conversation (answering questions about dates, passengers, etc.), MAINTAIN "flight" context
+      1. IDENTIFY PRIMARY AND SECONDARY INTENTS
+         - Determine if message indicates FLIGHT, HOTEL, SHOPPING, or GENERAL intent
+         - Identify any secondary intents (e.g., message about flight but also mentions hotel)
+         - Prioritize intents based on user's immediate needs
+         - Use chain-of-thought reasoning to explain your classification
       
-      2. For hotel inquiries:
-         - If this is a NEW hotel query, set context to "hotel"
-         - If user is CONTINUING a hotel conversation (answering about check-in/out dates, guest count, etc.), MAINTAIN "hotel" context
-         - If user just completed a flight booking and this relates to hotels at their destination, set context to "hotel"
+      2. EXTRACT RELEVANT ENTITIES WITH REASONING
+         - Location information: departure/destination for travel
+         - Dates: travel dates, length of stay
+         - People: number of travelers
+         - Card mentions: any specific credit cards referenced
+         - Shopping categories: types of products mentioned
+         - Budget information: spending limits or ranges
       
-      3. For shopping inquiries:
-         - If this is a NEW shopping query, set context to "shopping"
-         - If user is CONTINUING a shopping conversation (answering about product preferences, budget, etc.), MAINTAIN "shopping" context
-         - If user is responding to a suggestion about shopping at their travel destination, set context to "shopping"
-      
-      4. For general inquiries that don't fit above contexts, set to "general"
+      3. DETERMINE CONFIDENCE LEVEL
+         - Assess how confident you are in the intent classification
+         - If confidence is low, indicate clarification is needed
       
       Respond with JSON in this exact format:
       {
         "context": "flight|hotel|shopping|general",
         "intent": "describe the user's intent here",
+        "reasoning": "explain your step-by-step reasoning for this classification",
+        "confidence": "high|medium|low",
+        "needs_clarification": true|false,
+        "clarification_question": "only if clarification needed",
         "entities": {
-          "location": "extracted location if any",
+          "location": {
+            "departure": "extracted departure location if any",
+            "destination": "extracted destination if any"
+          },
           "dates": {
             "start": "extracted start date if any",
             "end": "extracted end date if any"
@@ -427,7 +539,8 @@ async function analyzeMessageContext(message: string, chatHistory: any[]): Promi
           "travelers": "number of travelers if specified",
           "cardPreference": "any mentioned card preference",
           "budget": "any budget constraints mentioned",
-          "category": "shopping category if relevant"
+          "category": "shopping category if relevant",
+          "secondary_intents": ["array", "of", "secondary", "intents"]
         }
       }`;
     

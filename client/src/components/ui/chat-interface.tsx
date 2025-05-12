@@ -152,7 +152,7 @@ export function ChatInterface() {
         <TabsContent value="chat" className="flex-1 flex flex-col overflow-hidden mt-0 p-0">
           <div 
             ref={chatContainerRef}
-            className="flex-1 overflow-y-auto p-4 space-y-4 chat-container scrollbar-thin"
+            className="flex-1 overflow-y-auto p-4 space-y-4 chat-container h-[500px] max-h-[500px] custom-scrollbar"
           >
             {isLoading ? (
               // Loading skeleton
@@ -167,7 +167,7 @@ export function ChatInterface() {
                 </div>
               ))
             ) : (
-              // Actual messages
+              // Show all messages with a scrollbar
               messages.map((message, index) => (
                 <div 
                   key={index} 
@@ -201,9 +201,9 @@ export function ChatInterface() {
                   
                   <div className={`${
                     message.role === "user" 
-                      ? "bg-[#1A1F71] text-white" 
-                      : "bg-gray-100 text-gray-800"
-                    } rounded-lg p-3 max-w-[80%]`}
+                      ? "message-bubble user-message" 
+                      : "message-bubble ai-message"
+                    }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   </div>

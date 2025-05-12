@@ -1,6 +1,6 @@
 import { Tab } from "@headlessui/react";
 import { useState } from "react";
-import { FlightInterface } from "@/components/ui/flight-interface";
+import SimpleFlightInterface from "@/components/ui/flight-interface-simple";
 import { HotelInterface } from "@/components/ui/hotel-interface";
 import { 
   Plane,
@@ -144,7 +144,7 @@ export default function Travel() {
               
               {/* Flight Results Section */}
               <div className="border rounded-lg shadow-sm overflow-hidden">
-                <FlightInterface />
+                <SimpleFlightInterface />
               </div>
             </Tab.Panel>
             

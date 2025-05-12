@@ -1,6 +1,16 @@
+// Load environment variables from .env file
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+
+// Check for memory storage flag in command line arguments
+if (process.argv.includes('--mem-storage')) {
+  process.env.USE_MEM_STORAGE = 'true';
+  log('Memory storage mode enabled via command line argument');
+}
 
 const app = express();
 app.use(express.json());

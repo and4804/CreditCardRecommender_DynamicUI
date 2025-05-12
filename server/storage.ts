@@ -144,10 +144,26 @@ export class MemStorage implements IStorage {
       pointsRequired: 38500,
       cashPrice: 22800, // ₹22,800
       rating: 3.5,
-      cardBenefits: [
-        "4X HDFC Reward Points",
-        "Complimentary meal + beverage"
-      ]
+      cardBenefits: {
+        general: ["Free Checked Baggage", "Priority Boarding"],
+        cards: [
+          {
+            cardName: "HDFC Infinia",
+            benefits: ["5% cashback (₹1,140 savings)", "4X reward points (4,560 points)", "Complimentary lounge access"],
+            discountedPrice: 21660
+          },
+          {
+            cardName: "SBI Elite",
+            benefits: ["8% discount on base fare (₹1,824 savings)", "Double reward points", "Free seat selection"],
+            discountedPrice: 20976
+          },
+          {
+            cardName: "ICICI Emeralde",
+            benefits: ["3% cashback (₹684 savings)", "Free travel insurance worth ₹5 Lakh", "Complimentary meal"],
+            discountedPrice: 22116
+          }
+        ]
+      }
     };
     await this.createFlight(airIndiaFlight);
 
@@ -162,10 +178,26 @@ export class MemStorage implements IStorage {
       pointsRequired: 25000,
       cashPrice: 18500, // ₹18,500
       rating: 4.0,
-      cardBenefits: [
-        "Complimentary Seat Selection",
-        "5% cashback with ICICI cards"
-      ]
+      cardBenefits: {
+        general: ["Complimentary Seat Selection", "Web Check-in"],
+        cards: [
+          {
+            cardName: "ICICI Emeralde",
+            benefits: ["10% cashback on IndiGo flights (₹1,850 savings)", "Priority check-in", "Free meal voucher worth ₹350"],
+            discountedPrice: 16650
+          },
+          {
+            cardName: "HDFC Infinia",
+            benefits: ["5% discount (₹925 savings)", "3X reward points on flight booking", "Free cancellation insurance"],
+            discountedPrice: 17575
+          },
+          {
+            cardName: "SBI Elite",
+            benefits: ["7% cashback (₹1,295 savings)", "Complimentary lounge access", "Extra 5kg baggage allowance"],
+            discountedPrice: 17205
+          }
+        ]
+      }
     };
     await this.createFlight(indigoFlight);
 
@@ -180,12 +212,98 @@ export class MemStorage implements IStorage {
       pointsRequired: 32000,
       cashPrice: 24600, // ₹24,600
       rating: 4.5,
-      cardBenefits: [
-        "10% off with SBI Elite Card",
-        "Club Vistara points bonus"
-      ]
+      cardBenefits: {
+        general: ["Premium Economy Upgrade (₹3,500 value)", "Club Vistara points"],
+        cards: [
+          {
+            cardName: "SBI Elite",
+            benefits: ["12% discount on business class (₹2,952 savings)", "Double CV points", "Free lounge access for companion"],
+            discountedPrice: 21648
+          },
+          {
+            cardName: "HDFC Infinia",
+            benefits: ["7.5% cashback (₹1,845 savings)", "Complimentary business class lounge access", "5X reward points"],
+            discountedPrice: 22755
+          },
+          {
+            cardName: "ICICI Emeralde",
+            benefits: ["6% cashback (₹1,476 savings)", "Free cancellation insurance", "Priority baggage handling"],
+            discountedPrice: 23124
+          }
+        ]
+      }
     };
     await this.createFlight(vistara);
+
+    // Add an Emirates flight with premium benefits
+    const emiratesFlight: InsertFlight = {
+      airline: "Emirates",
+      departureTime: "2:30 PM",
+      departureAirport: "BOM",
+      arrivalTime: "4:05 PM",
+      arrivalAirport: "DXB",
+      duration: "3h 05m",
+      isNonstop: true,
+      pointsRequired: 42000,
+      cashPrice: 31500, // ₹31,500
+      rating: 5.0,
+      cardBenefits: {
+        general: ["Complimentary chauffeur service", "30kg baggage allowance"],
+        cards: [
+          {
+            cardName: "HDFC Infinia",
+            benefits: ["15% discount on first & business class (₹4,725 savings)", "Exclusive Emirates lounge access", "6X reward points (18,900 points)"],
+            discountedPrice: 26775
+          },
+          {
+            cardName: "ICICI Emeralde",
+            benefits: ["10% cashback (₹3,150 savings)", "Fast-track immigration at Dubai", "Complimentary hotel stay for 7+ hour layovers"],
+            discountedPrice: 28350
+          },
+          {
+            cardName: "SBI Elite",
+            benefits: ["8% discount (₹2,520 savings)", "Double Emirates Skywards miles", "Free seat selection in Economy Flex"],
+            discountedPrice: 28980
+          }
+        ]
+      }
+    };
+    await this.createFlight(emiratesFlight);
+
+    // Add an Air Arabia budget option
+    const airArabiaFlight: InsertFlight = {
+      airline: "Air Arabia",
+      departureTime: "11:10 PM",
+      departureAirport: "BOM",
+      arrivalTime: "12:40 AM",
+      arrivalAirport: "DXB",
+      duration: "3h 00m",
+      isNonstop: true,
+      pointsRequired: 18000,
+      cashPrice: 14200, // ₹14,200
+      rating: 3.8,
+      cardBenefits: {
+        general: ["Price guarantee", "Web check-in"],
+        cards: [
+          {
+            cardName: "ICICI Emeralde",
+            benefits: ["12% cashback on Air Arabia (₹1,704 savings)", "Free seat selection worth ₹800", "Priority boarding"],
+            discountedPrice: 12496
+          },
+          {
+            cardName: "SBI Elite",
+            benefits: ["10% discount (₹1,420 savings)", "Extra 7kg baggage allowance", "Free cancellation up to 24 hours"],
+            discountedPrice: 12780
+          },
+          {
+            cardName: "HDFC Infinia",
+            benefits: ["8% cashback (₹1,136 savings)", "4X reward points on booking", "Free meal voucher worth ₹500"],
+            discountedPrice: 13064
+          }
+        ]
+      }
+    };
+    await this.createFlight(airArabiaFlight);
 
     // Create sample Dubai hotels for Indian travelers
     const burjAlArabHotel: InsertHotel = {
@@ -269,107 +387,276 @@ export class MemStorage implements IStorage {
     };
     await this.createShoppingOffer(bloomingdalesOffer);
 
-    const bhPhotoOffer: InsertShoppingOffer = {
-      storeName: "B&H Photo Video",
-      location: "9th Ave & 34th St, New York",
-      distanceFromHotel: "Available online",
-      offerType: "cash",
-      offerValue: "$50 Back",
-      description: "Premier destination for cameras, computers, home theater equipment, and other electronics.",
-      imageUrl: "https://images.unsplash.com/photo-1491933382434-500287f9b54b",
-      benefits: [
-        "$50 back on purchases of $250+",
-        "Extended warranty with Amex"
-      ],
-      validThrough: "July 15, 2023",
-      category: "Electronics"
-    };
-    await this.createShoppingOffer(bhPhotoOffer);
-
-    const samsungStoreOffer: InsertShoppingOffer = {
-      storeName: "Samsung Experience Store",
+    // Add more fashion shopping offers
+    const shopper_stop: InsertShoppingOffer = {
+      storeName: "Shoppers Stop",
       location: "Multiple locations across India",
       distanceFromHotel: "Available online",
       offerType: "percentage",
-      offerValue: "10% Back",
-      description: "Official Samsung stores with latest products including Galaxy S25 Ultra and other premium smartphones.",
-      imageUrl: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c",
+      offerValue: "20% Off",
+      description: "Premier department store chain in India offering a wide range of fashion and lifestyle products.",
+      imageUrl: "https://images.unsplash.com/photo-1607082349566-187342175e2f",
       benefits: [
-        "10% cashback up to ₹5,000 with HDFC Infinia",
-        "Additional 1-year warranty with HDFC cards"
+        "20% instant discount with HDFC Infinia",
+        "Additional 5% as FirstCitizen reward points"
       ],
-      validThrough: "August 31, 2023",
-      category: "Electronics"
+      validThrough: "May 31, 2023",
+      category: "Fashion"
     };
-    await this.createShoppingOffer(samsungStoreOffer);
+    await this.createShoppingOffer(shopper_stop);
 
-    const flipkartOffer: InsertShoppingOffer = {
-      storeName: "Flipkart",
+    const myntra: InsertShoppingOffer = {
+      storeName: "Myntra",
       location: "Online, India",
       distanceFromHotel: "Available online",
       offerType: "cash",
-      offerValue: "₹10,000 Off",
-      description: "India's leading e-commerce marketplace with wide selection of electronics, clothing, and more.",
-      imageUrl: "https://images.unsplash.com/photo-1622560480605-d83c853bc5c3",
+      offerValue: "₹1,000 Off",
+      description: "India's leading e-commerce platform for fashion and lifestyle products from top brands.",
+      imageUrl: "https://images.unsplash.com/photo-1614771637369-ed94441a651a",
       benefits: [
-        "₹10,000 instant discount on S25 Ultra with ICICI Bank cards",
-        "No-cost EMI options with Citi cards"
+        "₹1,000 instant discount on ₹5,000 with ICICI Emeralde",
+        "No-cost EMI options with select cards"
       ],
-      validThrough: "Limited time offer",
-      category: "Electronics"
+      validThrough: "April 30, 2023",
+      category: "Fashion"
     };
-    await this.createShoppingOffer(flipkartOffer);
-
-    const cromaOffer: InsertShoppingOffer = {
-      storeName: "Croma",
-      location: "Multiple locations across India",
-      distanceFromHotel: "Available online",
-      offerType: "points",
-      offerValue: "5X Points",
-      description: "Indian retail chain for consumer electronics and durables with wide product selection.",
-      imageUrl: "https://images.unsplash.com/photo-1546054454-aa26e2b734c7",
-      benefits: [
-        "5X reward points with SBI Elite cards",
-        "Extended warranty protection on premium electronics"
-      ],
-      validThrough: "July 30, 2023",
-      category: "Electronics"
-    };
-    await this.createShoppingOffer(cromaOffer);
-
-    const amazonIndiaOffer: InsertShoppingOffer = {
-      storeName: "Amazon India",
+    await this.createShoppingOffer(myntra);
+    
+    const ajio: InsertShoppingOffer = {
+      storeName: "AJIO",
       location: "Online, India",
       distanceFromHotel: "Available online",
       offerType: "percentage",
-      offerValue: "15% Back",
-      description: "E-commerce giant with vast selection of products including the latest smartphones and electronics.",
-      imageUrl: "https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2",
+      offerValue: "15% Off",
+      description: "Trendy fashion platform offering a curated collection of Indian and international brands.",
+      imageUrl: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b",
       benefits: [
-        "15% instant discount up to ₹7,500 with HDFC Infinia",
-        "Additional exchange bonus of ₹5,000 on old phones"
+        "15% instant discount with SBI Elite Card",
+        "Additional 10% off with coupon code SBIELITE10"
       ],
-      validThrough: "Limited period offer",
-      category: "Electronics"
+      validThrough: "June 15, 2023",
+      category: "Fashion"
     };
-    await this.createShoppingOffer(amazonIndiaOffer);
+    await this.createShoppingOffer(ajio);
 
-    const reliance: InsertShoppingOffer = {
-      storeName: "Reliance Digital",
+    // Add more hotels in Dubai
+    const jumeirahBeachHotel: InsertHotel = {
+      name: "Jumeirah Beach Hotel",
+      location: "Jumeirah Beach Road, Dubai",
+      area: "Jumeirah",
+      rating: 4.8,
+      reviewCount: 932,
+      pricePerNight: 28000, // ₹28,000
+      totalPrice: 196000,   // ₹196,000 for 7 nights
+      pointsEarned: 58800,
+      description: "Iconic wave-shaped luxury hotel on Jumeirah Beach with stunning views of the Arabian Gulf and Burj Al Arab.",
+      imageUrl: "https://images.unsplash.com/photo-1602002418816-5c0aeef426aa",
+      benefits: [
+        "Free access to Wild Wadi Waterpark",
+        "SBI Elite Card 10% cashback",
+        "Complimentary breakfast and dinner",
+        "Private beach access"
+      ],
+      cardExclusiveOffer: "4X SBI Elite Reward Points"
+    };
+    await this.createHotel(jumeirahBeachHotel);
+
+    const armaniHotel: InsertHotel = {
+      name: "Armani Hotel Dubai",
+      location: "Burj Khalifa, Downtown Dubai",
+      area: "Downtown",
+      rating: 4.9,
+      reviewCount: 724,
+      pricePerNight: 45000, // ₹45,000
+      totalPrice: 315000,   // ₹315,000 for 7 nights
+      pointsEarned: 94500,
+      description: "Luxury hotel designed by Giorgio Armani, located within the iconic Burj Khalifa building.",
+      imageUrl: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa",
+      benefits: [
+        "HDFC Infinia exclusive rate with 15% discount",
+        "Armani signature spa treatment voucher",
+        "VIP access to Dubai Mall",
+        "Guaranteed Burj Khalifa view"
+      ],
+      cardExclusiveOffer: "5X HDFC Infinia Reward Points and complimentary spa access"
+    };
+    await this.createHotel(armaniHotel);
+
+    const fourSeasonsDubai: InsertHotel = {
+      name: "Four Seasons Resort Dubai",
+      location: "Jumeirah Beach Road",
+      area: "Jumeirah",
+      rating: 4.7,
+      reviewCount: 856,
+      pricePerNight: 38000, // ₹38,000
+      totalPrice: 266000,   // ₹266,000 for 7 nights
+      pointsEarned: 79800,
+      description: "Beachfront resort with luxurious rooms, multiple pools, and a pristine private beach.",
+      imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945",
+      benefits: [
+        "ICICI Emeralde 3rd night free offer",
+        "Complimentary airport transfers",
+        "Daily breakfast buffet",
+        "Resort credit of AED 500"
+      ],
+      cardExclusiveOffer: "ICICI Emeralde 15% cashback on total stay"
+    };
+    await this.createHotel(fourSeasonsDubai);
+
+    // Add Indian domestic flights
+    const airIndiaDomestic: InsertFlight = {
+      airline: "Air India",
+      departureTime: "6:15 AM",
+      departureAirport: "DEL",
+      arrivalTime: "8:45 AM",
+      arrivalAirport: "BOM",
+      duration: "2h 30m",
+      isNonstop: true,
+      pointsRequired: 12000,
+      cashPrice: 6800, // ₹6,800
+      rating: 3.8,
+      cardBenefits: {
+        general: ["Free web check-in", "Extra 5kg baggage allowance"],
+        cards: [
+          {
+            cardName: "HDFC Infinia",
+            benefits: ["10% cashback (₹680 savings)", "2X reward points (1,360 points)", "Free lounge access"],
+            discountedPrice: 6120
+          },
+          {
+            cardName: "SBI Elite",
+            benefits: ["7% discount on base fare (₹476 savings)", "Free seat selection", "Priority baggage handling"],
+            discountedPrice: 6324
+          },
+          {
+            cardName: "ICICI Emeralde",
+            benefits: ["5% cashback (₹340 savings)", "Free travel insurance", "Complimentary meal"],
+            discountedPrice: 6460
+          }
+        ]
+      }
+    };
+    await this.createFlight(airIndiaDomestic);
+
+    const indigoMumBang: InsertFlight = {
+      airline: "IndiGo",
+      departureTime: "11:20 AM",
+      departureAirport: "BOM",
+      arrivalTime: "1:40 PM",
+      arrivalAirport: "BLR",
+      duration: "1h 20m",
+      isNonstop: true,
+      pointsRequired: 8000,
+      cashPrice: 4500, // ₹4,500
+      rating: 4.2,
+      cardBenefits: {
+        general: ["Free web check-in", "On-time guarantee"],
+        cards: [
+          {
+            cardName: "ICICI Emeralde",
+            benefits: ["12% cashback on IndiGo flights (₹540 savings)", "6E Prime access", "Fast-track security"],
+            discountedPrice: 3960
+          },
+          {
+            cardName: "HDFC Infinia",
+            benefits: ["8% discount (₹360 savings)", "Extra legroom seat", "Priority boarding"],
+            discountedPrice: 4140
+          },
+          {
+            cardName: "SBI Elite",
+            benefits: ["10% cashback (₹450 savings)", "Free cancellation", "Free seat selection"],
+            discountedPrice: 4050
+          }
+        ]
+      }
+    };
+    await this.createFlight(indigoMumBang);
+
+    const vistaraDelhiHyd: InsertFlight = {
+      airline: "Vistara",
+      departureTime: "3:40 PM",
+      departureAirport: "DEL",
+      arrivalTime: "6:10 PM",
+      arrivalAirport: "HYD",
+      duration: "2h 30m",
+      isNonstop: true,
+      pointsRequired: 15000,
+      cashPrice: 7200, // ₹7,200
+      rating: 4.6,
+      cardBenefits: {
+        general: ["Premium Economy option", "Club Vistara points"],
+        cards: [
+          {
+            cardName: "SBI Elite",
+            benefits: ["15% discount on premium economy (₹1,080 savings)", "Double CV points", "Complimentary lounge access"],
+            discountedPrice: 6120
+          },
+          {
+            cardName: "HDFC Infinia",
+            benefits: ["10% cashback (₹720 savings)", "Extra baggage allowance", "Priority check-in"],
+            discountedPrice: 6480
+          },
+          {
+            cardName: "ICICI Emeralde",
+            benefits: ["8% cashback (₹576 savings)", "Free meal selection", "Free cancellation insurance"],
+            discountedPrice: 6624
+          }
+        ]
+      }
+    };
+    await this.createFlight(vistaraDelhiHyd);
+
+    // Add more shopping offers for travel and luxury categories
+    const travelGadgets: InsertShoppingOffer = {
+      storeName: "Croma Travel Tech",
+      location: "Multiple locations across India",
+      distanceFromHotel: "Available online",
+      offerType: "bundle",
+      offerValue: "Free Powerbank",
+      description: "Premium travel gadgets including cameras, noise-cancelling headphones, and travel adapters.",
+      imageUrl: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528",
+      benefits: [
+        "Free 10,000 mAh powerbank with purchase over ₹15,000",
+        "Extended 2-year warranty with HDFC Infinia"
+      ],
+      validThrough: "May 31, 2023",
+      category: "Travel"
+    };
+    await this.createShoppingOffer(travelGadgets);
+
+    const luxuryWatch: InsertShoppingOffer = {
+      storeName: "Ethos Watch Boutiques",
+      location: "Multiple locations across India",
+      distanceFromHotel: "Available online",
+      offerType: "percentage",
+      offerValue: "10% Off",
+      description: "Authorized retailer for premium watch brands including Rolex, Omega, and TAG Heuer.",
+      imageUrl: "https://images.unsplash.com/photo-1523170335258-f5ed11844a49",
+      benefits: [
+        "10% instant discount with HDFC Infinia up to ₹50,000",
+        "Complimentary watch servicing for 3 years"
+      ],
+      validThrough: "June 30, 2023",
+      category: "Luxury"
+    };
+    await this.createShoppingOffer(luxuryWatch);
+
+    const titanEyePlus: InsertShoppingOffer = {
+      storeName: "Titan Eye+",
       location: "Multiple locations across India",
       distanceFromHotel: "Available online",
       offerType: "cash",
-      offerValue: "₹8,000 Back",
-      description: "Electronics retail chain offering a wide range of consumer electronics and home appliances.",
-      imageUrl: "https://images.unsplash.com/photo-1601524909162-ae8725290836",
+      offerValue: "₹2,000 Off",
+      description: "Premium eyewear store offering a wide range of sunglasses and prescription glasses.",
+      imageUrl: "https://images.unsplash.com/photo-1577803645773-f96470509666",
       benefits: [
-        "Instant cashback of ₹8,000 with ICICI Emeralde",
-        "Free premium case worth ₹3,999"
+        "₹2,000 off on sunglasses above ₹7,000 with ICICI Emeralde",
+        "Free eye checkup and frame customization"
       ],
       validThrough: "July 15, 2023",
-      category: "Electronics"
+      category: "Fashion"
     };
-    await this.createShoppingOffer(reliance);
+    await this.createShoppingOffer(titanEyePlus);
 
     // Create initial chat message
     const welcomeMessage: InsertChatMessage = {
@@ -525,5 +812,6 @@ export class MemStorage implements IStorage {
 // Import the database storage
 import { DatabaseStorage } from "./database-storage";
 
-// Use DatabaseStorage instead of MemStorage for production environments
-export const storage = new DatabaseStorage();
+// Use MemStorage instead of DatabaseStorage to display our sample flight data
+// export const storage = new DatabaseStorage();
+export const storage = new MemStorage();
