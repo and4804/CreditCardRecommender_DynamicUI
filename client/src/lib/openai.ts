@@ -4,8 +4,15 @@ import { apiRequest } from "./queryClient";
 export type ContextAnalysisType = {
   context: "flight" | "hotel" | "shopping" | "general";
   intent: string;
+  reasoning?: string;
+  confidence?: "high" | "medium" | "low";
+  needs_clarification?: boolean;
+  clarification_question?: string;
   entities: {
-    location?: string;
+    location?: {
+      departure?: string;
+      destination?: string;
+    };
     dates?: {
       start?: string;
       end?: string;
@@ -14,6 +21,7 @@ export type ContextAnalysisType = {
     cardPreference?: string;
     budget?: string;
     category?: string;
+    secondary_intents?: string[];
   };
 };
 
