@@ -7,20 +7,24 @@ A travel booking application that shows flight options with card rewards benefit
 This application can run with or without a database:
 
 ### Quick Start Options
+1. **Run the server script** (recommended):
+   ```
+   start-server.sh
+   ```
 
-1. **Memory mode with real OpenAI responses** (recommended):
+2. **Memory mode with real OpenAI responses** (recommended):
    ```
    npm run start:mem:api
    ```
    Uses in-memory storage (no database needed) and real OpenAI API from your .env file.
 
-2. **Memory mode with mock AI** (no API key needed):
+3. **Memory mode with mock AI** (no API key needed):
    ```
    npm run start:mem
    ```
    Uses in-memory storage and mock OpenAI responses (static responses).
 
-3. **With database** (requires PostgreSQL):
+4. **With database** (requires PostgreSQL):
    ```
    npm run dev
    ```
