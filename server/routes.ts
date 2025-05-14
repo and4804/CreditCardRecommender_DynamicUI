@@ -319,8 +319,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Get hotels
   app.get("/api/hotels", async (req: Request, res: Response) => {
-    const hotels = await storage.getHotels();
-    res.json(hotels);
+    try {
+      console.log("[express] Fetching hotels data");
+      const hotels = await storage.getHotels();
+      
+      // Filter out any hotels without an ID
+      const validHotels = hotels.filter(hotel => hotel && hotel.id);
+      
+      console.log(`[express] Successfully retrieved ${validHotels.length} hotels`);
+      
+      // Add CORS headers for local development
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET');
+      res.header('Access-Control-Allow-Headers', 'Content-Type');
+      
+      res.json(validHotels);
+    } catch (error) {
+      console.error("[express] Error fetching hotels:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch hotels data",
+        message: (error as Error).message
+      });
+    }
   });
   
   // Get shopping offers
@@ -333,6 +353,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } else {
       const offers = await storage.getShoppingOffers();
       res.json(offers);
+    }
+  });
+  
+  // Alias for '/api/shopping-offers' to handle requests from the new interface
+  app.get("/api/shopping", async (req: Request, res: Response) => {
+    try {
+      const category = req.query.category as string;
+      console.log("[express] Fetching shopping offers data");
+      
+      let offers;
+      if (category) {
+        offers = await storage.getShoppingOffersByCategory(category);
+      } else {
+        offers = await storage.getShoppingOffers();
+      }
+      
+      // Filter out any empty objects to ensure valid JSON
+      const validOffers = offers.filter((offer: any) => 
+        offer && typeof offer === 'object' && Object.keys(offer).length > 0
+      );
+      
+      console.log(`[express] Successfully retrieved ${validOffers.length} shopping offers`);
+      
+      // Add CORS headers for local development
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET');
+      res.header('Access-Control-Allow-Headers', 'Content-Type');
+      
+      res.json(validOffers);
+    } catch (error) {
+      console.error("[express] Error fetching shopping offers:", error);
+      res.status(500).json({ 
+        error: "Failed to fetch shopping offers data",
+        message: (error as Error).message
+      });
     }
   });
   

@@ -1,99 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Flight } from '@shared/schema';
 import { Button } from "@/components/ui/button";
-
-// Simplified flight card component
-const FlightCard = ({ flight }: { flight: Flight }) => {
-  const cardBenefits = flight.cardBenefits as any;
-  
-  return (
-    <div className="border rounded-lg p-4 hover:shadow-md transition mb-4 bg-white">
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center">
-          <div className="w-8 h-8 mr-2 flex items-center justify-center bg-blue-50 rounded-full">
-            <span className="font-bold text-blue-700">{flight.airline.substring(0, 2)}</span>
-          </div>
-          <span className="font-medium">{flight.airline}</span>
-        </div>
-        {flight.isNonstop && (
-          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Nonstop</span>
-        )}
-      </div>
-      
-      <div className="flex justify-between items-center">
-        <div className="flex-1">
-          <div className="flex justify-between items-center">
-            <div className="text-center">
-              <p className="font-semibold">{flight.departureTime}</p>
-              <p className="text-xs text-gray-500">{flight.departureAirport}</p>
-            </div>
-            <div className="flex-1 px-4">
-              <div className="relative">
-                <div className="h-[2px] bg-gray-300 w-full absolute top-1/2"></div>
-                <p className="text-xs text-center text-gray-500 mt-4">{flight.duration}</p>
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="font-semibold">{flight.arrivalTime}</p>
-              <p className="text-xs text-gray-500">{flight.arrivalAirport}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="ml-6 text-right">
-          <p className="font-semibold text-blue-500">{flight.pointsRequired.toLocaleString()} points</p>
-          <p className="text-xs text-gray-500">₹{flight.cashPrice.toLocaleString()}</p>
-          <div className="flex items-center justify-end mt-1">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <svg 
-                key={i}
-                xmlns="http://www.w3.org/2000/svg" 
-                viewBox="0 0 24 24" 
-                fill={i < flight.rating ? "#FFB700" : "none"}
-                stroke={i >= flight.rating ? "#FFB700" : "none"}
-                strokeWidth="1"
-                className="w-3 h-3"
-              >
-                <path d="M12 2l2.4 7.6h7.6l-6 4.4 2.4 7.6-6-4.4-6 4.4 2.4-7.6-6-4.4h7.6z" />
-              </svg>
-            ))}
-          </div>
-        </div>
-      </div>
-      
-      <div className="mt-3 pt-3 border-t">
-        <div className="mb-2">
-          <p className="text-xs text-gray-500 mb-1">Card Benefits:</p>
-          <div>
-            {cardBenefits?.cards && cardBenefits.cards[0]?.benefits && (
-              <ul className="text-xs text-gray-700">
-                {cardBenefits.cards[0].benefits.map((benefit: string, i: number) => (
-                  <li key={i} className="flex items-start mb-1">
-                    <svg className="w-3 h-3 text-green-600 mr-1 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                    </svg>
-                    {benefit}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-        <div className="flex justify-end">
-          <Button className="text-sm bg-blue-800 text-white">
-            Book Flight
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-};
+import { useLocation } from 'wouter';
 
 // Main flight interface component
 export default function SimpleFlightInterface() {
   const [flights, setFlights] = useState<Flight[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [selectedFlightId, setSelectedFlightId] = useState<number | null>(null);
+  const [location] = useLocation();
+
+  // Get query params from URL
+  useEffect(() => {
+    if (location.includes('?')) {
+      const queryParams = new URLSearchParams(location.split('?')[1]);
+      const selected = queryParams.get('selected');
+      
+      if (selected) {
+        setSelectedFlightId(parseInt(selected, 10));
+      }
+    }
+  }, [location]);
 
   useEffect(() => {
     const fetchFlights = async () => {
@@ -201,7 +129,97 @@ export default function SimpleFlightInterface() {
         <h3 className="font-medium mb-4">Best Options for Your Indian Premium Cards</h3>
         <div className="space-y-4">
           {flights.map(flight => (
-            <FlightCard key={flight.id} flight={flight} />
+            <div 
+              key={flight.id} 
+              className={`border rounded-lg p-4 mb-4 bg-white ${selectedFlightId === flight.id ? 'ring-2 ring-blue-500 shadow-md' : 'hover:shadow-md'} transition`}
+            >
+              <div className="flex justify-between items-center mb-3">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 mr-2 flex items-center justify-center bg-blue-50 rounded-full">
+                    <span className="font-bold text-blue-700">{flight.airline.substring(0, 2)}</span>
+                  </div>
+                  <span className="font-medium">{flight.airline}</span>
+                </div>
+                <div className="flex items-center">
+                  {flight.isNonstop && (
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Nonstop</span>
+                  )}
+                  {selectedFlightId === flight.id && (
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full ml-2">
+                      Selected
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <div className="flex-1">
+                  <div className="flex justify-between items-center">
+                    <div className="text-center">
+                      <p className="font-semibold">{flight.departureTime}</p>
+                      <p className="text-xs text-gray-500">{flight.departureAirport}</p>
+                    </div>
+                    <div className="flex-1 px-4">
+                      <div className="relative">
+                        <div className="h-[2px] bg-gray-300 w-full absolute top-1/2"></div>
+                        <p className="text-xs text-center text-gray-500 mt-4">{flight.duration}</p>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-semibold">{flight.arrivalTime}</p>
+                      <p className="text-xs text-gray-500">{flight.arrivalAirport}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="ml-6 text-right">
+                  <p className="font-semibold text-blue-500">{flight.pointsRequired.toLocaleString()} points</p>
+                  <p className="text-xs text-gray-500">₹{flight.cashPrice.toLocaleString()}</p>
+                  <div className="flex items-center justify-end mt-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <svg 
+                        key={i}
+                        xmlns="http://www.w3.org/2000/svg" 
+                        viewBox="0 0 24 24" 
+                        fill={i < flight.rating ? "#FFB700" : "none"}
+                        stroke={i >= flight.rating ? "#FFB700" : "none"}
+                        strokeWidth="1"
+                        className="w-3 h-3"
+                      >
+                        <path d="M12 2l2.4 7.6h7.6l-6 4.4 2.4 7.6-6-4.4-6 4.4 2.4-7.6-6-4.4h7.6z" />
+                      </svg>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-3 pt-3 border-t">
+                <div className="mb-2">
+                  <p className="text-xs text-gray-500 mb-1">Card Benefits:</p>
+                  <div>
+                    {flight.cardBenefits && typeof flight.cardBenefits === 'object' && 
+                     (flight.cardBenefits as any).cards && 
+                     (flight.cardBenefits as any).cards[0]?.benefits && (
+                      <ul className="text-xs text-gray-700">
+                        {(flight.cardBenefits as any).cards[0].benefits.map((benefit: string, i: number) => (
+                          <li key={i} className="flex items-start mb-1">
+                            <svg className="w-3 h-3 text-green-600 mr-1 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
+                            </svg>
+                            {benefit}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button className="text-sm bg-blue-800 text-white">
+                    Book Flight
+                  </Button>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       </div>

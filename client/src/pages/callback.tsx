@@ -22,6 +22,9 @@ export default function Callback() {
 
   useEffect(() => {
     // Log debugging information
+    const currentOrigin = window.location.origin;
+    const fullCallbackUrl = `${currentOrigin}/callback`;
+    
     console.log("Auth0 Callback Status:", { 
       isAuthenticated, 
       isLoading, 
@@ -30,6 +33,8 @@ export default function Callback() {
       urlErrorDescription: errorDescription,
       user: user ? 'User data available' : 'No user data',
       location: window.location.href,
+      origin: currentOrigin,
+      fullCallbackUrl: fullCallbackUrl,
       redirectUri: auth0Config.redirectUri,
       search: window.location.search,
       hasAuthParams: hasAuthParams
@@ -85,6 +90,7 @@ export default function Callback() {
       });
     }
 
+    // Updated debug info to include origin information
     setDebugInfo({
       isAuthenticated, 
       isLoading, 
@@ -94,6 +100,9 @@ export default function Callback() {
       urlErrorDescription: errorDescription,
       hasUser: !!user,
       currentUrl: window.location.href,
+      origin: currentOrigin,
+      callbackUrl: fullCallbackUrl,
+      configuredRedirect: auth0Config.redirectUri,
       hasAuthParams: hasAuthParams,
       currentTime: new Date().toISOString()
     });

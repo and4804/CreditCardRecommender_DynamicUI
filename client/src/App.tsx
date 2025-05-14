@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ChatContextProvider } from "./lib/contexts/chat-context";
 import { InterfaceContextProvider } from "./lib/contexts/interface-context";
+import { FlightContextProvider } from "./lib/contexts/flight-context";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Login from "@/pages/login";
@@ -85,14 +86,16 @@ function App() {
         <TooltipProvider>
           <InterfaceContextProvider>
             <ChatContextProvider>
-              <div className="flex flex-col min-h-screen">
-                <HeaderNew />
-                <main className="flex-1">
-                  <Router />
-                </main>
-                <Footer />
-              </div>
-              <Toaster />
+              <FlightContextProvider>
+                <div className="flex flex-col min-h-screen">
+                  <HeaderNew />
+                  <main className="flex-1">
+                    <Router />
+                  </main>
+                  <Footer />
+                </div>
+                <Toaster />
+              </FlightContextProvider>
             </ChatContextProvider>
           </InterfaceContextProvider>
         </TooltipProvider>

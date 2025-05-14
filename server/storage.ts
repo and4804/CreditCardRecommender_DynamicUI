@@ -370,293 +370,422 @@ export class MemStorage implements IStorage {
     await this.createHotel(addressDowntownHotel);
 
     // Create sample shopping offers
-    const bloomingdalesOffer: InsertShoppingOffer = {
-      storeName: "Bloomingdale's",
-      location: "59th St & Lexington Ave, New York",
-      distanceFromHotel: "Available online",
-      offerType: "percentage",
-      offerValue: "15% Back",
-      description: "Luxury department store offering designer clothing, accessories, home goods, and beauty products.",
-      imageUrl: "https://pixabay.com/get/g90b6b12849be89529e14c053f0dd595d0fabe8f2834aa18fdfe4e3277003053b4725fbfbf9e3bb49ada8983b4d505b65970ba0bd68ee9a0d4f9ad290f26f9157_1280.jpg",
+    const samsungS25Ultra = this.createShoppingOffer({
+      storeName: "Samsung S25 Ultra",
+      location: "Online & Retail Stores",
+      distanceFromHotel: "N/A",
+      offerType: "Flash Sale",
+      offerValue: "Up to ₹12,000 off",
+      description: "Experience Samsung's latest flagship with 200MP camera, 120Hz dynamic AMOLED display, and advanced AI features.",
+      imageUrl: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c",
       benefits: [
-        "Get 15% statement credit up to $75",
-        "3X points on purchases"
+        "No-cost EMI up to 12 months with HDFC card",
+        "10% instant discount up to ₹8,000 with HDFC Infinia",
+        "Extra ₹12,000 off on exchange with ICICI cards",
+        "Free Galaxy Buds2 Pro worth ₹18,990"
+      ],
+      validThrough: "July 31, 2023",
+      category: "smartphone",
+      retailers: [
+        {
+          name: "Amazon.in",
+          price: 124999,
+          discount: "₹8,000 off",
+          link: "https://amazon.in"
+        },
+        {
+          name: "Flipkart",
+          price: 125999,
+          discount: "₹7,000 off",
+          link: "https://flipkart.com"
+        },
+        {
+          name: "Samsung Store",
+          price: 119999,
+          discount: "₹12,000 off",
+          link: "https://samsung.com"
+        },
+        {
+          name: "Croma",
+          price: 127999,
+          discount: "₹5,000 off",
+          link: "https://croma.com"
+        },
+        {
+          name: "Reliance Digital",
+          price: 126999,
+          discount: "₹6,000 off",
+          link: "https://reliancedigital.in"
+        }
+      ]
+    });
+
+    const iphone15Pro = this.createShoppingOffer({
+      storeName: "Apple iPhone 15 Pro",
+      location: "Online & Apple Store",
+      distanceFromHotel: "N/A",
+      offerType: "Bank Offer",
+      offerValue: "Up to ₹10,000 cashback",
+      description: "Apple's premium smartphone with A17 Pro chip, 48MP camera system, Dynamic Island, and titanium design.",
+      imageUrl: "https://images.unsplash.com/photo-1696448425293-f27ee245db30",
+      benefits: [
+        "5% cashback up to ₹10,000 with HDFC Infinia",
+        "No-cost EMI for 9 months with ICICI cards",
+        "Double reward points with SBI Elite card",
+        "AppleCare+ at 50% discount with Amex"
       ],
       validThrough: "June 30, 2023",
-      category: "Fashion"
-    };
-    await this.createShoppingOffer(bloomingdalesOffer);
+      category: "smartphone",
+      retailers: [
+        {
+          name: "Apple Store",
+          price: 134900,
+          discount: "₹6,000 cashback",
+          link: "https://apple.com/in"
+        },
+        {
+          name: "Amazon.in",
+          price: 134900,
+          discount: "₹5,000 instant discount",
+          link: "https://amazon.in"
+        },
+        {
+          name: "Flipkart",
+          price: 133900,
+          discount: "₹7,000 off",
+          link: "https://flipkart.com"
+        },
+        {
+          name: "Croma",
+          price: 134900,
+          discount: "₹4,000 off",
+          link: "https://croma.com"
+        },
+        {
+          name: "Reliance Digital",
+          price: 134900,
+          discount: "₹8,000 off with exchange",
+          link: "https://reliancedigital.in"
+        }
+      ]
+    });
 
-    // Add more fashion shopping offers
-    const shopper_stop: InsertShoppingOffer = {
-      storeName: "Shoppers Stop",
-      location: "Multiple locations across India",
-      distanceFromHotel: "Available online",
-      offerType: "percentage",
-      offerValue: "20% Off",
-      description: "Premier department store chain in India offering a wide range of fashion and lifestyle products.",
-      imageUrl: "https://images.unsplash.com/photo-1607082349566-187342175e2f",
+    const pixel8Pro = this.createShoppingOffer({
+      storeName: "Google Pixel 8 Pro",
+      location: "Online Only",
+      distanceFromHotel: "N/A",
+      offerType: "Limited Time Offer",
+      offerValue: "Up to ₹15,000 off",
+      description: "Google's flagship with advanced AI features, Tensor G3 chip, 50MP camera system, and 120Hz LTPO display.",
+      imageUrl: "https://images.unsplash.com/photo-1667028379349-42ebf5367bc7",
       benefits: [
-        "20% instant discount with HDFC Infinia",
-        "Additional 5% as FirstCitizen reward points"
+        "Flat ₹10,000 instant discount with HDFC Infinia",
+        "No-cost EMI for up to 12 months with SBI cards",
+        "Free Pixel Buds Pro worth ₹19,990",
+        "5X reward points with ICICI Emeralde Card"
+      ],
+      validThrough: "August 15, 2023",
+      category: "smartphone",
+      retailers: [
+        {
+          name: "Flipkart",
+          price: 99999,
+          discount: "₹15,000 off",
+          link: "https://flipkart.com"
+        },
+        {
+          name: "Amazon.in",
+          price: 106999,
+          discount: "₹8,000 off",
+          link: "https://amazon.in"
+        },
+        {
+          name: "Croma",
+          price: 104999,
+          discount: "₹10,000 off",
+          link: "https://croma.com"
+        },
+        {
+          name: "Reliance Digital",
+          price: 105999,
+          discount: "₹9,000 off",
+          link: "https://reliancedigital.in"
+        }
+      ]
+    });
+
+    const onePlus12 = this.createShoppingOffer({
+      storeName: "OnePlus 12",
+      location: "Online & OnePlus Experience Stores",
+      distanceFromHotel: "N/A",
+      offerType: "Bank Partner Offer",
+      offerValue: "Extra ₹7,000 off",
+      description: "Flagship with Snapdragon 8 Gen 3, Hasselblad camera, 120Hz AMOLED display, and 100W fast charging.",
+      imageUrl: "https://images.unsplash.com/photo-1672151185537-b8ae860f764e",
+      benefits: [
+        "Instant discount of ₹5,000 with ICICI cards",
+        "Additional ₹7,000 off with HDFC credit cards",
+        "12-month no-cost EMI available",
+        "Free OnePlus Buds Pro 2 on pre-booking"
       ],
       validThrough: "May 31, 2023",
-      category: "Fashion"
-    };
-    await this.createShoppingOffer(shopper_stop);
+      category: "smartphone",
+      retailers: [
+        {
+          name: "OnePlus Store",
+          price: 64999,
+          discount: "₹7,000 off",
+          link: "https://oneplus.in"
+        },
+        {
+          name: "Amazon.in",
+          price: 64999,
+          discount: "₹5,000 off",
+          link: "https://amazon.in"
+        },
+        {
+          name: "Flipkart",
+          price: 66999,
+          discount: "₹3,000 off",
+          link: "https://flipkart.com"
+        },
+        {
+          name: "Croma",
+          price: 65999,
+          discount: "₹4,000 off",
+          link: "https://croma.com"
+        },
+        {
+          name: "Reliance Digital",
+          price: 66999,
+          discount: "₹3,000 off",
+          link: "https://reliancedigital.in"
+        }
+      ]
+    });
 
-    const myntra: InsertShoppingOffer = {
-      storeName: "Myntra",
-      location: "Online, India",
-      distanceFromHotel: "Available online",
-      offerType: "cash",
-      offerValue: "₹1,000 Off",
-      description: "India's leading e-commerce platform for fashion and lifestyle products from top brands.",
-      imageUrl: "https://images.unsplash.com/photo-1614771637369-ed94441a651a",
+    const vivoX100Pro = this.createShoppingOffer({
+      storeName: "Vivo X100 Pro",
+      location: "Online & Retail Stores",
+      distanceFromHotel: "N/A",
+      offerType: "Special Launch Offer",
+      offerValue: "Up to ₹10,000 discount",
+      description: "Premium smartphone with Dimensity 9300, Zeiss camera system, 6.78-inch AMOLED display, and 100W FlashCharge.",
+      imageUrl: "https://images.unsplash.com/photo-1675997834137-0a344a9b8808",
       benefits: [
-        "₹1,000 instant discount on ₹5,000 with ICICI Emeralde",
-        "No-cost EMI options with select cards"
-      ],
-      validThrough: "April 30, 2023",
-      category: "Fashion"
-    };
-    await this.createShoppingOffer(myntra);
-    
-    const ajio: InsertShoppingOffer = {
-      storeName: "AJIO",
-      location: "Online, India",
-      distanceFromHotel: "Available online",
-      offerType: "percentage",
-      offerValue: "15% Off",
-      description: "Trendy fashion platform offering a curated collection of Indian and international brands.",
-      imageUrl: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b",
-      benefits: [
-        "15% instant discount with SBI Elite Card",
-        "Additional 10% off with coupon code SBIELITE10"
-      ],
-      validThrough: "June 15, 2023",
-      category: "Fashion"
-    };
-    await this.createShoppingOffer(ajio);
-
-    // Add more hotels in Dubai
-    const jumeirahBeachHotel: InsertHotel = {
-      name: "Jumeirah Beach Hotel",
-      location: "Jumeirah Beach Road, Dubai",
-      area: "Jumeirah",
-      rating: 4.8,
-      reviewCount: 932,
-      pricePerNight: 28000, // ₹28,000
-      totalPrice: 196000,   // ₹196,000 for 7 nights
-      pointsEarned: 58800,
-      description: "Iconic wave-shaped luxury hotel on Jumeirah Beach with stunning views of the Arabian Gulf and Burj Al Arab.",
-      imageUrl: "https://images.unsplash.com/photo-1602002418816-5c0aeef426aa",
-      benefits: [
-        "Free access to Wild Wadi Waterpark",
-        "SBI Elite Card 10% cashback",
-        "Complimentary breakfast and dinner",
-        "Private beach access"
-      ],
-      cardExclusiveOffer: "4X SBI Elite Reward Points"
-    };
-    await this.createHotel(jumeirahBeachHotel);
-
-    const armaniHotel: InsertHotel = {
-      name: "Armani Hotel Dubai",
-      location: "Burj Khalifa, Downtown Dubai",
-      area: "Downtown",
-      rating: 4.9,
-      reviewCount: 724,
-      pricePerNight: 45000, // ₹45,000
-      totalPrice: 315000,   // ₹315,000 for 7 nights
-      pointsEarned: 94500,
-      description: "Luxury hotel designed by Giorgio Armani, located within the iconic Burj Khalifa building.",
-      imageUrl: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa",
-      benefits: [
-        "HDFC Infinia exclusive rate with 15% discount",
-        "Armani signature spa treatment voucher",
-        "VIP access to Dubai Mall",
-        "Guaranteed Burj Khalifa view"
-      ],
-      cardExclusiveOffer: "5X HDFC Infinia Reward Points and complimentary spa access"
-    };
-    await this.createHotel(armaniHotel);
-
-    const fourSeasonsDubai: InsertHotel = {
-      name: "Four Seasons Resort Dubai",
-      location: "Jumeirah Beach Road",
-      area: "Jumeirah",
-      rating: 4.7,
-      reviewCount: 856,
-      pricePerNight: 38000, // ₹38,000
-      totalPrice: 266000,   // ₹266,000 for 7 nights
-      pointsEarned: 79800,
-      description: "Beachfront resort with luxurious rooms, multiple pools, and a pristine private beach.",
-      imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945",
-      benefits: [
-        "ICICI Emeralde 3rd night free offer",
-        "Complimentary airport transfers",
-        "Daily breakfast buffet",
-        "Resort credit of AED 500"
-      ],
-      cardExclusiveOffer: "ICICI Emeralde 15% cashback on total stay"
-    };
-    await this.createHotel(fourSeasonsDubai);
-
-    // Add Indian domestic flights
-    const airIndiaDomestic: InsertFlight = {
-      airline: "Air India",
-      departureTime: "6:15 AM",
-      departureAirport: "DEL",
-      arrivalTime: "8:45 AM",
-      arrivalAirport: "BOM",
-      duration: "2h 30m",
-      isNonstop: true,
-      pointsRequired: 12000,
-      cashPrice: 6800, // ₹6,800
-      rating: 3.8,
-      cardBenefits: {
-        general: ["Free web check-in", "Extra 5kg baggage allowance"],
-        cards: [
-          {
-            cardName: "HDFC Infinia",
-            benefits: ["10% cashback (₹680 savings)", "2X reward points (1,360 points)", "Free lounge access"],
-            discountedPrice: 6120
-          },
-          {
-            cardName: "SBI Elite",
-            benefits: ["7% discount on base fare (₹476 savings)", "Free seat selection", "Priority baggage handling"],
-            discountedPrice: 6324
-          },
-          {
-            cardName: "ICICI Emeralde",
-            benefits: ["5% cashback (₹340 savings)", "Free travel insurance", "Complimentary meal"],
-            discountedPrice: 6460
-          }
-        ]
-      }
-    };
-    await this.createFlight(airIndiaDomestic);
-
-    const indigoMumBang: InsertFlight = {
-      airline: "IndiGo",
-      departureTime: "11:20 AM",
-      departureAirport: "BOM",
-      arrivalTime: "1:40 PM",
-      arrivalAirport: "BLR",
-      duration: "1h 20m",
-      isNonstop: true,
-      pointsRequired: 8000,
-      cashPrice: 4500, // ₹4,500
-      rating: 4.2,
-      cardBenefits: {
-        general: ["Free web check-in", "On-time guarantee"],
-        cards: [
-          {
-            cardName: "ICICI Emeralde",
-            benefits: ["12% cashback on IndiGo flights (₹540 savings)", "6E Prime access", "Fast-track security"],
-            discountedPrice: 3960
-          },
-          {
-            cardName: "HDFC Infinia",
-            benefits: ["8% discount (₹360 savings)", "Extra legroom seat", "Priority boarding"],
-            discountedPrice: 4140
-          },
-          {
-            cardName: "SBI Elite",
-            benefits: ["10% cashback (₹450 savings)", "Free cancellation", "Free seat selection"],
-            discountedPrice: 4050
-          }
-        ]
-      }
-    };
-    await this.createFlight(indigoMumBang);
-
-    const vistaraDelhiHyd: InsertFlight = {
-      airline: "Vistara",
-      departureTime: "3:40 PM",
-      departureAirport: "DEL",
-      arrivalTime: "6:10 PM",
-      arrivalAirport: "HYD",
-      duration: "2h 30m",
-      isNonstop: true,
-      pointsRequired: 15000,
-      cashPrice: 7200, // ₹7,200
-      rating: 4.6,
-      cardBenefits: {
-        general: ["Premium Economy option", "Club Vistara points"],
-        cards: [
-          {
-            cardName: "SBI Elite",
-            benefits: ["15% discount on premium economy (₹1,080 savings)", "Double CV points", "Complimentary lounge access"],
-            discountedPrice: 6120
-          },
-          {
-            cardName: "HDFC Infinia",
-            benefits: ["10% cashback (₹720 savings)", "Extra baggage allowance", "Priority check-in"],
-            discountedPrice: 6480
-          },
-          {
-            cardName: "ICICI Emeralde",
-            benefits: ["8% cashback (₹576 savings)", "Free meal selection", "Free cancellation insurance"],
-            discountedPrice: 6624
-          }
-        ]
-      }
-    };
-    await this.createFlight(vistaraDelhiHyd);
-
-    // Add more shopping offers for travel and luxury categories
-    const travelGadgets: InsertShoppingOffer = {
-      storeName: "Croma Travel Tech",
-      location: "Multiple locations across India",
-      distanceFromHotel: "Available online",
-      offerType: "bundle",
-      offerValue: "Free Powerbank",
-      description: "Premium travel gadgets including cameras, noise-cancelling headphones, and travel adapters.",
-      imageUrl: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528",
-      benefits: [
-        "Free 10,000 mAh powerbank with purchase over ₹15,000",
-        "Extended 2-year warranty with HDFC Infinia"
-      ],
-      validThrough: "May 31, 2023",
-      category: "Travel"
-    };
-    await this.createShoppingOffer(travelGadgets);
-
-    const luxuryWatch: InsertShoppingOffer = {
-      storeName: "Ethos Watch Boutiques",
-      location: "Multiple locations across India",
-      distanceFromHotel: "Available online",
-      offerType: "percentage",
-      offerValue: "10% Off",
-      description: "Authorized retailer for premium watch brands including Rolex, Omega, and TAG Heuer.",
-      imageUrl: "https://images.unsplash.com/photo-1523170335258-f5ed11844a49",
-      benefits: [
-        "10% instant discount with HDFC Infinia up to ₹50,000",
-        "Complimentary watch servicing for 3 years"
-      ],
-      validThrough: "June 30, 2023",
-      category: "Luxury"
-    };
-    await this.createShoppingOffer(luxuryWatch);
-
-    const titanEyePlus: InsertShoppingOffer = {
-      storeName: "Titan Eye+",
-      location: "Multiple locations across India",
-      distanceFromHotel: "Available online",
-      offerType: "cash",
-      offerValue: "₹2,000 Off",
-      description: "Premium eyewear store offering a wide range of sunglasses and prescription glasses.",
-      imageUrl: "https://images.unsplash.com/photo-1577803645773-f96470509666",
-      benefits: [
-        "₹2,000 off on sunglasses above ₹7,000 with ICICI Emeralde",
-        "Free eye checkup and frame customization"
+        "10% instant discount up to ₹10,000 with HDFC cards",
+        "No-cost EMI for up to 12 months",
+        "Extra ₹8,000 off on exchange",
+        "Free wireless earbuds worth ₹4,999"
       ],
       validThrough: "July 15, 2023",
-      category: "Fashion"
-    };
-    await this.createShoppingOffer(titanEyePlus);
+      category: "smartphone",
+      retailers: [
+        {
+          name: "Vivo E-store",
+          price: 89999,
+          discount: "₹10,000 off",
+          link: "https://vivo.com/in"
+        },
+        {
+          name: "Flipkart",
+          price: 91999,
+          discount: "₹8,000 off",
+          link: "https://flipkart.com"
+        },
+        {
+          name: "Amazon.in",
+          price: 92999,
+          discount: "₹7,000 off",
+          link: "https://amazon.in"
+        },
+        {
+          name: "Croma",
+          price: 93999,
+          discount: "₹6,000 off",
+          link: "https://croma.com"
+        },
+        {
+          name: "Reliance Digital",
+          price: 94999,
+          discount: "₹5,000 off",
+          link: "https://reliancedigital.in"
+        }
+      ]
+    });
+
+    const galaxyZFold5 = this.createShoppingOffer({
+      storeName: "Samsung Galaxy Z Fold 5",
+      location: "Online & Samsung Stores",
+      distanceFromHotel: "N/A",
+      offerType: "Premium Device Offer",
+      offerValue: "Up to ₹22,000 off",
+      description: "Cutting-edge foldable with 7.6-inch main display, Snapdragon 8 Gen 2, and advanced multitasking capabilities.",
+      imageUrl: "https://images.unsplash.com/photo-1633155089824-84841e3c9d5d",
+      benefits: [
+        "₹15,000 cashback with HDFC Infinia card",
+        "No-cost EMI for up to 24 months with SBI Elite",
+        "Free Samsung Care+ worth ₹11,999",
+        "Guaranteed ₹20,000 off on exchange"
+      ],
+      validThrough: "June 30, 2023",
+      category: "smartphone",
+      retailers: [
+        {
+          name: "Samsung Store",
+          price: 154999,
+          discount: "₹22,000 off",
+          link: "https://samsung.com/in"
+        },
+        {
+          name: "Amazon.in",
+          price: 159999,
+          discount: "₹17,000 off",
+          link: "https://amazon.in"
+        },
+        {
+          name: "Flipkart",
+          price: 158999,
+          discount: "₹18,000 off",
+          link: "https://flipkart.com"
+        },
+        {
+          name: "Croma",
+          price: 161999,
+          discount: "₹15,000 off",
+          link: "https://croma.com"
+        },
+        {
+          name: "Reliance Digital",
+          price: 157999,
+          discount: "₹19,000 off",
+          link: "https://reliancedigital.in"
+        }
+      ]
+    });
+
+    const nothingPhone2 = this.createShoppingOffer({
+      storeName: "Nothing Phone (2)",
+      location: "Online Only",
+      distanceFromHotel: "N/A",
+      offerType: "Special Discount",
+      offerValue: "Up to ₹5,000 off",
+      description: "Unique smartphone with Glyph Interface, Snapdragon 8+ Gen 1, and clean Nothing OS based on Android 13.",
+      imageUrl: "https://images.unsplash.com/photo-1678911170153-18af9dce99c0",
+      benefits: [
+        "Instant discount of ₹5,000 with HDFC cards",
+        "No-cost EMI for up to 9 months",
+        "Free Nothing Ear (2) worth ₹9,999 with ICICI cards",
+        "Additional exchange bonus of ₹3,000"
+      ],
+      validThrough: "May 31, 2023",
+      category: "smartphone",
+      retailers: [
+        {
+          name: "Flipkart",
+          price: 44999,
+          discount: "₹5,000 off",
+          link: "https://flipkart.com"
+        },
+        {
+          name: "Amazon.in",
+          price: 45999,
+          discount: "₹4,000 off",
+          link: "https://amazon.in"
+        },
+        {
+          name: "Croma",
+          price: 46999,
+          discount: "₹3,000 off",
+          link: "https://croma.com"
+        },
+        {
+          name: "Reliance Digital",
+          price: 47999,
+          discount: "₹2,000 off",
+          link: "https://reliancedigital.in"
+        }
+      ]
+    });
+
+    const appleWatch9 = this.createShoppingOffer({
+      storeName: "Apple Watch Series 9",
+      location: "Online & Apple Stores",
+      distanceFromHotel: "N/A",
+      offerType: "Card Partner Offer",
+      offerValue: "Up to ₹4,000 off",
+      description: "Latest Apple Watch with S9 chip, Double Tap gesture, and advanced health monitoring features.",
+      imageUrl: "https://images.unsplash.com/photo-1551816230-ef5deaed4a26",
+      benefits: [
+        "Instant discount of ₹4,000 with HDFC Infinia card",
+        "No-cost EMI for up to 6 months with ICICI cards",
+        "Additional Apple One subscription free for 3 months",
+        "Extra trade-in value of ₹2,000 for old watches"
+      ],
+      validThrough: "August 31, 2023",
+      category: "accessories",
+      retailers: [
+        {
+          name: "Apple Store",
+          price: 41900,
+          discount: "₹4,000 off",
+          link: "https://apple.com/in"
+        },
+        {
+          name: "Amazon.in",
+          price: 42900,
+          discount: "₹3,000 off",
+          link: "https://amazon.in"
+        },
+        {
+          name: "Flipkart",
+          price: 43900,
+          discount: "₹2,000 off",
+          link: "https://flipkart.com"
+        },
+        {
+          name: "Croma",
+          price: 42900,
+          discount: "₹3,000 off",
+          link: "https://croma.com"
+        },
+        {
+          name: "Reliance Digital",
+          price: 43900,
+          discount: "₹2,000 off",
+          link: "https://reliancedigital.in"
+        }
+      ]
+    });
+    
+    // Store all the sample data
+    this.users.set(createdUser.id, createdUser);
+
+    this.creditCards.set(hdfcCard.id, hdfcCard);
+    this.creditCards.set(iciciCard.id, iciciCard);
+    this.creditCards.set(sbiCard.id, sbiCard);
+
+    // Store sample flights
+    this.flights.set(airIndiaFlight.id, airIndiaFlight);
+    this.flights.set(indigoFlight.id, indigoFlight);
+    this.flights.set(vistara.id, vistara);
+    this.flights.set(emiratesFlight.id, emiratesFlight);
+    this.flights.set(airArabiaFlight.id, airArabiaFlight);
+
+    // Store sample hotels
+    this.hotels.set(burjAlArabHotel.id, burjAlArabHotel);
+    this.hotels.set(atlantisHotel.id, atlantisHotel);
+    this.hotels.set(addressDowntownHotel.id, addressDowntownHotel);
+
+    // Store sample shopping offers
+    this.shoppingOffers.set(samsungS25Ultra.id, samsungS25Ultra);
+    this.shoppingOffers.set(iphone15Pro.id, iphone15Pro);
+    this.shoppingOffers.set(pixel8Pro.id, pixel8Pro);
+    this.shoppingOffers.set(onePlus12.id, onePlus12);
+    this.shoppingOffers.set(vivoX100Pro.id, vivoX100Pro);
+    this.shoppingOffers.set(galaxyZFold5.id, galaxyZFold5);
+    this.shoppingOffers.set(nothingPhone2.id, nothingPhone2);
+    this.shoppingOffers.set(appleWatch9.id, appleWatch9);
 
     // Create initial chat message
     const welcomeMessage: InsertChatMessage = {

@@ -1,36 +1,35 @@
 import { Tab } from "@headlessui/react";
 import { useState, useEffect } from "react";
-import SimpleShoppingInterface from "@/components/ui/shopping-interface-simple";
+import SimpleHotelInterface from "@/components/ui/hotel-interface-simple";
 import { 
-  ShoppingBag, 
+  Hotel, 
   CreditCard, 
-  Search,
-  Smartphone,
-  Headphones,
-  Laptop,
-  Tag,
-  Percent
+  MapPin,
+  Calendar,
+  Users,
+  Star,
+  Wallet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useInterface } from "@/lib/contexts/interface-context";
 
-export default function Shopping() {
+export default function Hotels() {
   const [activeTab, setActiveTab] = useState(0);
   const [location] = useLocation();
   const { activeInterface } = useInterface();
   
   // If interface is not active, render an empty div
-  if (activeInterface !== 'shopping' && !location.includes('shopping')) {
+  if (activeInterface !== 'hotel' && !location.includes('hotels')) {
     return <div className="hidden"></div>;
   }
 
   return (
     <div className="container mx-auto p-4">
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h1 className="text-2xl font-sf-pro font-bold text-[#1A1F71] mb-2">Shop Smart with CardSavvy</h1>
+        <h1 className="text-2xl font-sf-pro font-bold text-[#1A1F71] mb-2">Hotel Smart with CardSavvy</h1>
         <p className="text-gray-600 mb-4">
-          Discover exclusive deals and maximize your savings with credit card offers.
+          Find the perfect accommodation and maximize your card benefits with our hotel search.
         </p>
         
         <Tab.Group selectedIndex={activeTab} onChange={setActiveTab}>
@@ -38,32 +37,32 @@ export default function Shopping() {
             <Tab className={({ selected }) =>
               `w-full rounded-lg py-2.5 text-sm font-medium leading-5 
                ${selected 
-                 ? 'bg-[#1A1F71] text-white shadow' 
+                 ? 'bg-[#FFB700] text-white shadow' 
                  : 'text-blue-700 hover:bg-white/[0.12] hover:text-blue-800'
                } transition-all flex items-center justify-center`
             }>
-              <Smartphone className="w-4 h-4 mr-2" />
-              Smartphones
+              <Hotel className="w-4 h-4 mr-2" />
+              All Hotels
             </Tab>
             <Tab className={({ selected }) =>
               `w-full rounded-lg py-2.5 text-sm font-medium leading-5 
                ${selected 
-                 ? 'bg-[#1A1F71] text-white shadow' 
+                 ? 'bg-[#FFB700] text-white shadow' 
                  : 'text-blue-700 hover:bg-white/[0.12] hover:text-blue-800'
                } transition-all flex items-center justify-center`
             }>
-              <Laptop className="w-4 h-4 mr-2" />
-              Electronics
+              <Star className="w-4 h-4 mr-2" />
+              Luxury Collection
             </Tab>
             <Tab className={({ selected }) =>
               `w-full rounded-lg py-2.5 text-sm font-medium leading-5 
                ${selected 
-                 ? 'bg-[#1A1F71] text-white shadow' 
+                 ? 'bg-[#FFB700] text-white shadow' 
                  : 'text-blue-700 hover:bg-white/[0.12] hover:text-blue-800'
                } transition-all flex items-center justify-center`
             }>
-              <Percent className="w-4 h-4 mr-2" />
-              Best Offers
+              <Wallet className="w-4 h-4 mr-2" />
+              Best Value
             </Tab>
           </Tab.List>
           
@@ -71,31 +70,43 @@ export default function Shopping() {
             <Tab.Panel>
               <div className="rounded-xl bg-white p-4 mb-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="flex flex-col col-span-2">
-                    <label className="text-sm font-medium text-gray-700 mb-1">Search for products</label>
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium text-gray-700 mb-1">Destination</label>
                     <div className="flex border rounded-md overflow-hidden">
                       <span className="bg-gray-100 p-2 flex items-center">
-                        <Search className="h-4 w-4 text-gray-500" />
+                        <MapPin className="h-4 w-4 text-gray-500" />
                       </span>
                       <input
                         type="text"
-                        placeholder="Samsung S25 Ultra, iPhone 15..."
+                        placeholder="Dubai"
                         className="flex-1 p-2 outline-none"
                       />
                     </div>
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-sm font-medium text-gray-700 mb-1">Price Range</label>
+                    <label className="text-sm font-medium text-gray-700 mb-1">Check-in/out</label>
                     <div className="flex border rounded-md overflow-hidden">
                       <span className="bg-gray-100 p-2 flex items-center">
-                        <Tag className="h-4 w-4 text-gray-500" />
+                        <Calendar className="h-4 w-4 text-gray-500" />
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="May 15 - May 22"
+                        className="flex-1 p-2 outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium text-gray-700 mb-1">Guests</label>
+                    <div className="flex border rounded-md overflow-hidden">
+                      <span className="bg-gray-100 p-2 flex items-center">
+                        <Users className="h-4 w-4 text-gray-500" />
                       </span>
                       <select className="flex-1 p-2 outline-none">
-                        <option>Any price</option>
-                        <option>₹0 - ₹20,000</option>
-                        <option>₹20,000 - ₹50,000</option>
-                        <option>₹50,000 - ₹100,000</option>
-                        <option>₹100,000+</option>
+                        <option>1 Guest</option>
+                        <option>2 Guests</option>
+                        <option>3 Guests</option>
+                        <option>4 Guests</option>
                       </select>
                     </div>
                   </div>
@@ -103,63 +114,60 @@ export default function Shopping() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div className="flex flex-col">
-                    <label className="text-sm font-medium text-gray-700 mb-1">Brand</label>
-                    <div className="flex border rounded-md overflow-hidden">
-                      <span className="bg-gray-100 p-2 flex items-center">
-                        <ShoppingBag className="h-4 w-4 text-gray-500" />
-                      </span>
-                      <select className="flex-1 p-2 outline-none">
-                        <option>All Brands</option>
-                        <option>Samsung</option>
-                        <option>Apple</option>
-                        <option>OnePlus</option>
-                        <option>Xiaomi</option>
-                        <option>Vivo</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="flex flex-col">
-                    <label className="text-sm font-medium text-gray-700 mb-1">Card Benefits</label>
+                    <label className="text-sm font-medium text-gray-700 mb-1">Price Range</label>
                     <div className="flex border rounded-md overflow-hidden">
                       <span className="bg-gray-100 p-2 flex items-center">
                         <CreditCard className="h-4 w-4 text-gray-500" />
                       </span>
                       <select className="flex-1 p-2 outline-none">
-                        <option>Any Benefit</option>
-                        <option>Cashback</option>
-                        <option>No-cost EMI</option>
-                        <option>Instant Discount</option>
-                        <option>Extended Warranty</option>
+                        <option>Any price</option>
+                        <option>₹0 - ₹20,000 / night</option>
+                        <option>₹20,000 - ₹40,000 / night</option>
+                        <option>₹40,000+ / night</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex flex-col">
+                    <label className="text-sm font-medium text-gray-700 mb-1">Star Rating</label>
+                    <div className="flex border rounded-md overflow-hidden">
+                      <span className="bg-gray-100 p-2 flex items-center">
+                        <Star className="h-4 w-4 text-gray-500" />
+                      </span>
+                      <select className="flex-1 p-2 outline-none">
+                        <option>Any Rating</option>
+                        <option>5 Stars</option>
+                        <option>4+ Stars</option>
+                        <option>3+ Stars</option>
                       </select>
                     </div>
                   </div>
                   <div className="flex items-end">
-                    <Button className="w-full bg-[#1A1F71]">
-                      Search Products
+                    <Button className="w-full bg-[#FFB700] text-white hover:bg-amber-600">
+                      Search Hotels
                     </Button>
                   </div>
                 </div>
               </div>
               
-              {/* Shopping Results Section */}
+              {/* Hotel Results Section */}
               <div className="border rounded-lg shadow-sm overflow-hidden">
-                <SimpleShoppingInterface />
+                <SimpleHotelInterface />
               </div>
             </Tab.Panel>
             
             <Tab.Panel>
               <div className="p-4">
-                <h3 className="font-medium text-lg mb-4">Electronics Deals</h3>
-                <p className="text-gray-600 mb-6">Explore the latest deals on laptops, tablets, audio devices and more.</p>
-                <SimpleShoppingInterface />
+                <h3 className="font-medium text-lg mb-4">Luxury Collection</h3>
+                <p className="text-gray-600 mb-6">Exclusive properties with premium amenities and exceptional service.</p>
+                <SimpleHotelInterface />
               </div>
             </Tab.Panel>
             
             <Tab.Panel>
               <div className="p-4">
-                <h3 className="font-medium text-lg mb-4">Best Credit Card Offers</h3>
-                <p className="text-gray-600 mb-6">Exclusive deals with maximum savings for your premium credit cards.</p>
-                <SimpleShoppingInterface />
+                <h3 className="font-medium text-lg mb-4">Best Value Properties</h3>
+                <p className="text-gray-600 mb-6">Great properties with maximum benefits for your credit card points.</p>
+                <SimpleHotelInterface />
               </div>
             </Tab.Panel>
           </Tab.Panels>
@@ -167,4 +175,4 @@ export default function Shopping() {
       </div>
     </div>
   );
-}
+} 

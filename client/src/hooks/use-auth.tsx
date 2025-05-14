@@ -1,10 +1,11 @@
 import { createContext, useState, useEffect, useContext, ReactNode } from "react";
 import { useQuery, useMutation, QueryClient } from "@tanstack/react-query";
 import { useToast } from "./use-toast";
+import { useAuth0 } from "@auth0/auth0-react";
 
 // Define the user type
 interface User {
-  id: number;
+  id: string;  // Changed from number to string for Auth0 sub
   username: string;
   name: string;
   email: string;
@@ -20,25 +21,8 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   error: Error | null;
-  login: (username: string, password: string) => Promise<void>;
-  register: (userData: RegisterData) => Promise<void>;
-  logout: () => Promise<void>;
-}
-
-// Register data type
-interface RegisterData {
-  username: string;
-  name: string;
-  email: string;
-  password: string;
-  pictureUrl?: string;
-  membershipLevel?: string;
-}
-
-// Login data type
-interface LoginData {
-  username: string;
-  password: string;
+  login: () => void;
+  logout: () => void;
 }
 
 // Create the auth context
@@ -54,64 +38,61 @@ export function AuthProvider({
 }) {
   const { toast } = useToast();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   
-  // Fetch the current user
+  // Use Auth0
   const { 
-    data: user, 
-    isLoading: isUserLoading,
-    error: userError,
-    refetch: refetchUser 
-  } = useQuery<User>({
-    queryKey: ['/api/auth/me'],
-    retry: false
-  });
+    user: auth0User, 
+    isAuthenticated: auth0IsAuthenticated, 
+    isLoading: auth0IsLoading,
+    loginWithRedirect,
+    logout: auth0Logout,
+    error: auth0Error
+  } = useAuth0();
   
-  // Update authentication state when user data changes
+  // Update auth state when Auth0 state changes
   useEffect(() => {
-    if (user) {
+    if (auth0IsAuthenticated && auth0User) {
+      // Map Auth0 user to our User type
+      const mappedUser: User = {
+        id: auth0User.sub || '',
+        username: auth0User.nickname || auth0User.email || '',
+        name: auth0User.name || '',
+        email: auth0User.email || '',
+        membershipLevel: 'Premium', // Default membership level
+        pictureUrl: auth0User.picture,
+        createdAt: auth0User.updated_at || new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+      };
+      
+      setUser(mappedUser);
       setIsAuthenticated(true);
+      
+      // Also update the user in React Query cache
+      queryClient.setQueryData(['/api/auth/me'], mappedUser);
+      
+      // Sync the user with our backend if needed
+      syncUserWithBackend(mappedUser);
+    } else {
+      setUser(null);
+      setIsAuthenticated(false);
     }
-  }, [user]);
-  
-  // Login mutation
-  const loginMutation = useMutation({
-    mutationFn: async (credentials: LoginData) => {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Login failed');
-      }
-      
-      return await response.json();
-    },
-    onSuccess: (data) => {
-      setIsAuthenticated(true);
-      queryClient.setQueryData(['/api/auth/me'], data);
+    
+    if (auth0Error) {
+      setError(auth0Error);
       toast({
-        title: "Login Successful",
-        description: `Welcome back, ${data.name}!`,
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Login Failed",
-        description: error.message,
+        title: "Authentication Error",
+        description: auth0Error.message,
         variant: "destructive",
       });
-    },
-  });
+    }
+  }, [auth0User, auth0IsAuthenticated, auth0IsLoading, auth0Error, queryClient, toast]);
   
-  // Register mutation
-  const registerMutation = useMutation({
-    mutationFn: async (userData: RegisterData) => {
-      const response = await fetch('/api/auth/register', {
+  // Function to sync user data with our backend
+  const syncUserWithBackend = async (userData: User) => {
+    try {
+      const response = await fetch('/api/auth/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,88 +101,35 @@ export function AuthProvider({
       });
       
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Registration failed');
+        console.error('Failed to sync user data with backend');
       }
-      
-      return await response.json();
-    },
-    onSuccess: (data) => {
-      setIsAuthenticated(true);
-      queryClient.setQueryData(['/api/auth/me'], data);
-      toast({
-        title: "Registration Successful",
-        description: `Welcome, ${data.name}!`,
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Registration Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-  
-  // Logout mutation
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Logout failed');
-      }
-      
-      return await response.json();
-    },
-    onSuccess: () => {
-      setIsAuthenticated(false);
-      queryClient.setQueryData(['/api/auth/me'], null);
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
-      toast({
-        title: "Logged Out",
-        description: "You have been logged out successfully.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Logout Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-  
-  // Login function
-  const login = async (username: string, password: string) => {
-    await loginMutation.mutateAsync({ username, password });
+    } catch (error) {
+      console.error('Error syncing user with backend:', error);
+    }
   };
   
-  // Register function
-  const register = async (userData: RegisterData) => {
-    await registerMutation.mutateAsync(userData);
+  // Login function using Auth0
+  const login = () => {
+    loginWithRedirect();
   };
   
   // Logout function
-  const logout = async () => {
-    await logoutMutation.mutateAsync();
+  const logout = () => {
+    auth0Logout({ 
+      logoutParams: {
+        returnTo: window.location.origin 
+      }
+    });
   };
   
   return (
     <AuthContext.Provider
       value={{
-        user: user || null,
-        isLoading: isUserLoading || loginMutation.isPending || registerMutation.isPending || logoutMutation.isPending,
+        user,
+        isLoading: auth0IsLoading,
         isAuthenticated,
-        error: userError instanceof Error ? userError : null,
+        error,
         login,
-        register,
         logout,
       }}
     >
