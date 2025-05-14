@@ -5,8 +5,8 @@
 const currentDomain = typeof window !== 'undefined' ? window.location.origin : '';
 
 export const auth0Config = {
-  domain: "dev-x5xghr0sc8y81r2o.us.auth0.com",
-  clientId: "WwgTEXitcFJKLbaFd0GasKvyqv8Qs3it", 
+  domain: "dev-v4g3q7uma25d66c2.us.auth0.com",
+  clientId: "uOMkgc6m0jAcRd6Z3Z56g1PA1eZnlHhQ", 
   // Use dynamic origin to handle different Replit environments
   redirectUri: `${currentDomain}/callback`,
   // Enable additional debugging for Auth0

@@ -12,6 +12,9 @@ import { clearChat } from "@/lib/openai";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
+import { ChatFlightRecommendations } from "@/components/ui/chat-flight-recommendations";
+import { ChatHotelRecommendations } from "@/components/ui/chat-hotel-recommendations";
+import { ChatShoppingRecommendations } from "@/components/ui/chat-shopping-recommendations";
 
 export function ChatInterface() {
   const [inputValue, setInputValue] = useState("");
@@ -206,6 +209,15 @@ export function ChatInterface() {
                     }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    
+                    {/* Add recommendations after assistant messages about relevant topics */}
+                    {message.role === "assistant" && index === messages.length - 1 && (
+                      <>
+                        <ChatFlightRecommendations />
+                        <ChatHotelRecommendations />
+                        <ChatShoppingRecommendations />
+                      </>
+                    )}
                   </div>
                   
                   {message.role === "user" && (
@@ -367,6 +379,25 @@ export function ChatInterface() {
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function DisplayChatMessage({ message, isAI }: { message: Message; isAI: boolean }) {
+  // ... existing code ...
+  
+  return (
+    <div>
+      <div className={`flex mb-4 ${isAI ? "justify-start" : "justify-end"}`}>
+        {/* ... existing code ... */}
+      </div>
+      {isAI && (
+        <>
+          <ChatFlightRecommendations />
+          <ChatHotelRecommendations />
+          <ChatShoppingRecommendations />
+        </>
+      )}
     </div>
   );
 }

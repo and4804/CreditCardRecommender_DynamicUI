@@ -1,7 +1,7 @@
 import { Tab } from "@headlessui/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SimpleFlightInterface from "@/components/ui/flight-interface-simple";
-import { HotelInterface } from "@/components/ui/hotel-interface";
+import SimpleHotelInterface from "@/components/ui/hotel-interface-simple";
 import { 
   Plane,
   Hotel, 
@@ -11,6 +11,9 @@ import {
   Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
+import { useFlights } from "@/lib/contexts/flight-context";
+import { useInterface } from "@/lib/contexts/interface-context";
 
 type TabProps = {
   selected: boolean;
@@ -19,6 +22,37 @@ type TabProps = {
 };
 
 export default function Travel() {
+  const [activeTab, setActiveTab] = useState(0);
+  const [location] = useLocation();
+  const { loadFlights } = useFlights();
+  const { activeInterface } = useInterface();
+  
+  // Extract query parameters from URL
+  useEffect(() => {
+    // Check if there are query parameters
+    if (location.includes('?')) {
+      const queryParams = new URLSearchParams(location.split('?')[1]);
+      const selected = queryParams.get('selected');
+      const from = queryParams.get('from');
+      const to = queryParams.get('to');
+      
+      if (selected || from || to) {
+        // Force tab to flights
+        setActiveTab(0);
+        
+        // Reload flight data
+        loadFlights();
+        
+        console.log('Travel page loaded with flight selection:', { selected, from, to });
+      }
+    }
+  }, [location, loadFlights]);
+
+  // If interface is not active, render an empty div
+  if (activeInterface !== 'flight' && !location.includes('travel')) {
+    return <div className="hidden"></div>;
+  }
+
   return (
     <div className="container mx-auto p-4">
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -27,7 +61,7 @@ export default function Travel() {
           Plan your journey and maximize your card benefits with our powerful booking tools.
         </p>
         
-        <Tab.Group>
+        <Tab.Group selectedIndex={activeTab} onChange={setActiveTab}>
           <Tab.List className="flex space-x-1 rounded-xl bg-blue-50 p-1 mb-6">
             <Tab className={({ selected }) =>
               `w-full rounded-lg py-2.5 text-sm font-medium leading-5 
@@ -75,6 +109,8 @@ export default function Travel() {
                         type="text"
                         placeholder="Mumbai"
                         className="flex-1 p-2 outline-none"
+                        value="Mumbai"
+                        readOnly
                       />
                     </div>
                   </div>
@@ -88,6 +124,8 @@ export default function Travel() {
                         type="text"
                         placeholder="Dubai"
                         className="flex-1 p-2 outline-none"
+                        value="Dubai"
+                        readOnly
                       />
                     </div>
                   </div>
@@ -101,6 +139,8 @@ export default function Travel() {
                         type="text"
                         placeholder="May 15 - May 22"
                         className="flex-1 p-2 outline-none"
+                        value="May 15 - May 22"
+                        readOnly
                       />
                     </div>
                   </div>
@@ -140,6 +180,30 @@ export default function Travel() {
                     </Button>
                   </div>
                 </div>
+                
+                <div className="bg-blue-50 p-3 rounded-lg mt-2">
+                  <h3 className="text-sm font-medium text-blue-800">Premium Card Benefits</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+                    <div className="bg-white p-2 rounded text-xs border border-blue-100">
+                      <span className="flex items-center font-medium text-blue-900">
+                        <span className="w-2 h-2 rounded-full bg-[#1A1F71] mr-1"></span>
+                        HDFC Infinia: 5% cashback
+                      </span>
+                    </div>
+                    <div className="bg-white p-2 rounded text-xs border border-blue-100">
+                      <span className="flex items-center font-medium text-blue-900">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 mr-1"></span>
+                        SBI Elite: Free cancellation
+                      </span>
+                    </div>
+                    <div className="bg-white p-2 rounded text-xs border border-blue-100">
+                      <span className="flex items-center font-medium text-blue-900">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
+                        ICICI Emeralde: Lounge access
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
               
               {/* Flight Results Section */}
@@ -161,6 +225,8 @@ export default function Travel() {
                         type="text"
                         placeholder="Dubai"
                         className="flex-1 p-2 outline-none"
+                        value="Dubai"
+                        readOnly
                       />
                     </div>
                   </div>
@@ -174,6 +240,8 @@ export default function Travel() {
                         type="text"
                         placeholder="May 15 - May 22"
                         className="flex-1 p-2 outline-none"
+                        value="May 15 - May 22"
+                        readOnly
                       />
                     </div>
                   </div>
@@ -209,30 +277,55 @@ export default function Travel() {
                     </div>
                   </div>
                   <div className="flex flex-col">
-                    <label className="text-sm font-medium text-gray-700 mb-1">Hotel Features</label>
+                    <label className="text-sm font-medium text-gray-700 mb-1">Hotel Area</label>
                     <div className="flex border rounded-md overflow-hidden">
                       <span className="bg-gray-100 p-2 flex items-center">
                         <Hotel className="h-4 w-4 text-gray-500" />
                       </span>
                       <select className="flex-1 p-2 outline-none">
-                        <option>All Hotels</option>
-                        <option>Luxury Collection</option>
-                        <option>Fine Hotels & Resorts</option>
-                        <option>Hilton Honors Properties</option>
+                        <option>All Areas</option>
+                        <option>Downtown Dubai</option>
+                        <option>Jumeirah</option>
+                        <option>The Palm</option>
+                        <option>Dubai Marina</option>
                       </select>
                     </div>
                   </div>
                   <div className="flex items-end">
-                    <Button className="w-full bg-[#FFB700] text-white hover:bg-amber-600">
+                    <Button className="w-full bg-[#1A1F71] text-white">
                       Search Hotels
                     </Button>
+                  </div>
+                </div>
+                
+                <div className="bg-amber-50 p-3 rounded-lg mt-2">
+                  <h3 className="text-sm font-medium text-amber-800">Premium Card Benefits</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2">
+                    <div className="bg-white p-2 rounded text-xs border border-amber-100">
+                      <span className="flex items-center font-medium text-amber-900">
+                        <span className="w-2 h-2 rounded-full bg-[#1A1F71] mr-1"></span>
+                        HDFC Infinia: 10X reward points
+                      </span>
+                    </div>
+                    <div className="bg-white p-2 rounded text-xs border border-amber-100">
+                      <span className="flex items-center font-medium text-amber-900">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 mr-1"></span>
+                        ICICI Emeralde: 12% discount
+                      </span>
+                    </div>
+                    <div className="bg-white p-2 rounded text-xs border border-amber-100">
+                      <span className="flex items-center font-medium text-amber-900">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
+                        SBI Elite: Free airport transfers
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
               
               {/* Hotel Results Section */}
               <div className="border rounded-lg shadow-sm overflow-hidden">
-                <HotelInterface />
+                <SimpleHotelInterface />
               </div>
             </Tab.Panel>
             

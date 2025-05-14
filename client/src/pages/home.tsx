@@ -2,12 +2,14 @@ import { useEffect } from "react";
 import { CardDisplay } from "@/components/ui/card-display";
 import { ChatInterface } from "@/components/ui/chat-interface";
 import { FlightInterface } from "@/components/ui/flight-interface";
-import { HotelInterface } from "@/components/ui/hotel-interface";
 import { ShoppingInterface } from "@/components/ui/shopping-interface";
 import { useInterface } from "@/lib/contexts/interface-context";
 import { useChat } from "@/lib/contexts/chat-context";
 import { PlaneIcon, HotelIcon, ShoppingBagIcon } from "lucide-react";
 import { clearChat } from "@/lib/openai";
+import Travel from "@/pages/travel";
+import Hotels from "@/pages/hotels";
+import Shopping from "@/pages/shopping";
 
 export default function Home() {
   const { activeInterface } = useInterface();
@@ -41,9 +43,9 @@ export default function Home() {
         
         {/* Dynamic Interface Container */}
         <div className="w-full md:w-3/5 rounded-xl shadow-md overflow-hidden bg-white relative">
-          {activeInterface === "flight" && <FlightInterface />}
-          {activeInterface === "hotel" && <HotelInterface />}
-          {activeInterface === "shopping" && <ShoppingInterface />}
+          {activeInterface === "flight" && <Travel />}
+          {activeInterface === "hotel" && <Hotels />}
+          {activeInterface === "shopping" && <Shopping />}
           {activeInterface === "welcome" && <WelcomeInterface />}
         </div>
       </div>

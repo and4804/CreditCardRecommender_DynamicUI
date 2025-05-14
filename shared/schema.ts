@@ -126,14 +126,25 @@ export const shoppingOffers = pgTable("shopping_offers", {
   benefits: jsonb("benefits").notNull(),
   validThrough: text("valid_through").notNull(),
   category: text("category").notNull(),
+  retailers: jsonb("retailers"), // Optional retailers field
 });
 
 export const insertShoppingOfferSchema = createInsertSchema(shoppingOffers).omit({
   id: true,
 });
 
-export type InsertShoppingOffer = z.infer<typeof insertShoppingOfferSchema>;
-export type ShoppingOffer = typeof shoppingOffers.$inferSelect;
+// Define a more specific type for retailers
+export type Retailer = {
+  name: string;
+  price: number;
+  discount?: string;
+  link: string;
+};
+
+// Extend the ShoppingOffer type to explicitly include retailers
+export type ShoppingOffer = typeof shoppingOffers.$inferSelect & {
+  retailers?: Retailer[];
+};
 
 // Chat Message Schema
 export const chatMessages = pgTable("chat_messages", {

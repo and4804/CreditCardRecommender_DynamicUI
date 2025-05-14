@@ -306,6 +306,85 @@ export function setupAuth(app: Express) {
       return res.status(500).json({ error: 'An error occurred while fetching user data' });
     }
   });
+  
+  // New route: Sync Auth0 user with our backend
+  app.post('/api/auth/sync', async (req: Request, res: Response) => {
+    try {
+      const userData = req.body;
+
+      if (!userData || !userData.id) {
+        return res.status(400).json({ error: 'Invalid user data' });
+      }
+
+      // Store the Auth0 user ID in the session
+      req.session.userId = userData.id;
+
+      if (useMemStorage) {
+        // In-memory sync
+        // Check if user exists by Auth0 ID
+        const existingUser = inMemoryUsers.find(u => u.id === userData.id);
+        
+        if (existingUser) {
+          // Update existing user
+          Object.assign(existingUser, {
+            ...userData,
+            lastLogin: new Date().toISOString()
+          });
+        } else {
+          // Create new user
+          const newUser = {
+            ...userData,
+            password: "$auth0user", // This is a placeholder, not used for auth
+            lastLogin: new Date().toISOString(),
+            createdAt: userData.createdAt || new Date().toISOString()
+          };
+          
+          inMemoryUsers.push(newUser);
+        }
+        
+        return res.status(200).json({ success: true });
+      } else {
+        // Database sync
+        // Check if user exists by Auth0 ID
+        const existingUsers = await db.select()
+          .from(users)
+          .where(eq(users.id, userData.id))
+          .limit(1);
+        
+        if (existingUsers.length > 0) {
+          // Update existing user
+          await db.update(users)
+            .set({
+              name: userData.name,
+              email: userData.email,
+              username: userData.username,
+              pictureUrl: userData.pictureUrl,
+              lastLogin: new Date().toISOString()
+            })
+            .where(eq(users.id, userData.id));
+        } else {
+          // Create new user
+          await db.insert(users)
+            .values({
+              id: userData.id,
+              username: userData.username,
+              email: userData.email,
+              password: "$auth0user", // This is a placeholder, not used for auth
+              name: userData.name,
+              membershipLevel: userData.membershipLevel || 'Premium',
+              createdAt: userData.createdAt || new Date().toISOString(),
+              lastLogin: new Date().toISOString(),
+              pictureUrl: userData.pictureUrl || null
+            });
+        }
+        
+        return res.status(200).json({ success: true });
+      }
+    } catch (error) {
+      console.error('User sync error:', error);
+      return res.status(500).json({ error: 'An error occurred during user synchronization' });
+    }
+  });
 }
 
 // Middleware to check if user is authenticated
