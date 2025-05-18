@@ -2,22 +2,23 @@ import pg from 'pg';
 import * as schema from '@shared/schema';
 import { drizzle } from 'drizzle-orm/node-postgres';
 
-// Check if we're using memory storage
+// Check if we're using memory storage or MongoDB
 const useMemStorage = process.env.USE_MEM_STORAGE === 'true';
+const useMongoDB = process.env.USE_MONGODB === 'true';
 
 // Get the Pool class from pg
 const { Pool } = pg;
 
-// Only throw error if we're actually trying to use the database
-if (!process.env.DATABASE_URL && !useMemStorage) {
+// Only throw error if we're actually trying to use PostgreSQL
+if (!process.env.DATABASE_URL && !useMemStorage && !useMongoDB) {
   throw new Error('DATABASE_URL is not defined');
 }
 
 // Create a dummy or real pool based on storage mode
 let pgPool: pg.Pool;
-if (useMemStorage) {
+if (useMemStorage || useMongoDB) {
   // Create a dummy "mock" pool that won't be used
-  console.log('Using memory storage - database connection is mocked');
+  console.log('Using memory storage or MongoDB - PostgreSQL connection is mocked');
   pgPool = {
     query: async () => ({ rows: [] }),
     on: () => ({}),

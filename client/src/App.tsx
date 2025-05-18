@@ -22,6 +22,10 @@ import { AuthProvider } from "@/hooks/use-auth";
 
 // Import ProtectedRoute component
 import { ProtectedRouteNew } from "@/components/auth/protected-route-new";
+import FinancialProfileForm from "@/components/financial-profile-form";
+import Recommendations from "@/pages/recommendations";
+import CreditAdvisor from "@/pages/credit-advisor";
+import Onboarding from "@/pages/onboarding";
 
 // Create a query client for React Query
 const queryClient = new QueryClient({
@@ -30,7 +34,7 @@ const queryClient = new QueryClient({
       retry: 1,
       refetchOnWindowFocus: true,
       staleTime: 0, // Consider data stale immediately
-      gcTime: 10000, // Cache for 10 seconds (using gcTime instead of cacheTime for v5)
+      gcTime: 3000000, // Cache for 300 seconds (using gcTime instead of cacheTime for v5)
     },
   },
 });
@@ -42,6 +46,24 @@ function Router() {
       <Route path="/login" component={Login}/>
       <Route path="/auth" component={AuthPage}/>
       <Route path="/callback" component={Callback}/>
+      
+      {/* Onboarding Route */}
+      <Route path="/onboarding" component={() => (
+        <ProtectedRouteNew>
+          <Onboarding />
+        </ProtectedRouteNew>
+      )}/>
+      
+      {/* Credit Advisor and Recommendations Routes */}
+      <Route path="/credit-advisor" component={CreditAdvisor}/>
+      <Route path="/recommendations" component={Recommendations}/>
+      
+      {/* Financial Profile */}
+      <Route path="/financial-profile" component={() => (
+        <ProtectedRouteNew>
+          <FinancialProfileForm />
+        </ProtectedRouteNew>
+      )}/>
       
       {/* Protected Routes */}
       <Route path="/profile" component={() => (

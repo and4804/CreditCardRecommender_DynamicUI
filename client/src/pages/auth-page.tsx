@@ -58,21 +58,21 @@ export default function AuthPage() {
           <div className="w-full max-w-md">
             <h1 className="text-3xl font-bold text-[#1A1F71] mb-2">Welcome to CardSavvy</h1>
             <p className="text-gray-600 mb-8">Sign in to continue</p>
-            
-            <Button 
+                  
+                  <Button 
               onClick={login}
               className="w-full bg-[#1A1F71] hover:bg-[#2A3080] text-white py-3 h-auto text-lg mb-4"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Connecting...
-                </>
-              ) : (
+                      </>
+                    ) : (
                 "Sign in"
-              )}
-            </Button>
+                    )}
+                  </Button>
             
             <p className="text-sm text-gray-500 text-center mt-6">
               By signing in, you agree to our Terms of Service and Privacy Policy.

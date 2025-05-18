@@ -23,7 +23,8 @@ const MemoryStore = memoryStore(session);
 // Declare session for TypeScript
 declare module 'express-session' {
   interface SessionData {
-    userId: number;
+    userId?: number;
+    auth0Id?: string;
   }
 }
 
@@ -57,8 +58,9 @@ export function setupSessions(app: Express) {
     saveUninitialized: false,
     cookie: {
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      httpOnly: true
+      maxAge: 90 * 24 * 60 * 60 * 1000, // 90 days (increased from 30)
+      httpOnly: true,
+      sameSite: 'lax' // Allow cookies to be sent with same-site navigations
     }
   };
 
@@ -389,9 +391,31 @@ export function setupAuth(app: Express) {
 
 // Middleware to check if user is authenticated
 export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
-  if (req.session.userId) {
+  console.log("Auth check - Session data:", { 
+    userId: req.session.userId, 
+    auth0Id: req.session.auth0Id,
+    sessionID: req.sessionID,
+    headers: {
+      'x-auth-user-id': req.headers['x-auth-user-id'],
+      cookie: req.headers.cookie?.substring(0, 30) + '...' // Log partial cookie for debugging
+    }
+  });
+  
+  // Check session for auth first
+  if (req.session.userId || req.session.auth0Id) {
     return next();
   }
+  
+  // If not in session, check for auth headers as fallback
+  const authUserId = req.headers['x-auth-user-id'];
+  if (authUserId && typeof authUserId === 'string' && authUserId.length > 0) {
+    console.log("Auth succeeded through header auth user ID:", authUserId);
+    // Store the user ID in the session for future requests
+    req.session.auth0Id = authUserId;
+    return next();
+  }
+  
+  console.log("Auth failed - No userId or auth0Id in session or headers");
   return res.status(401).json({ error: 'Not authenticated' });
 }
 

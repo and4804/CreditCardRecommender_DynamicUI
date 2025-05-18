@@ -4,9 +4,11 @@ import { useLocation } from 'wouter';
 import { auth0Config } from '@/lib/auth0-config';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function Callback() {
   const { isAuthenticated, isLoading, error, user } = useAuth0();
+  const { isNewUser } = useAuth();
   const [, setLocation] = useLocation();
   const [status, setStatus] = useState("Initializing...");
   const [debugInfo, setDebugInfo] = useState<any>({});
@@ -28,6 +30,7 @@ export default function Callback() {
     console.log("Auth0 Callback Status:", { 
       isAuthenticated, 
       isLoading, 
+      isNewUser,
       error: error ? error.message : null,
       urlErrorParam: errorParam,
       urlErrorDescription: errorDescription,
@@ -73,13 +76,20 @@ export default function Callback() {
           localStorage.setItem('auth_user', JSON.stringify(data.user));
           localStorage.setItem('auth_is_authenticated', 'true');
           
-          // Update status and redirect
-          setStatus("Successfully authenticated! Redirecting...");
-          
-          // Reload the page to apply the authentication
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 1000);
+          // Check if user is new
+          if (data.isNewUser) {
+            localStorage.setItem('isNewUser', 'true');
+            setStatus("New user detected! Redirecting to onboarding...");
+            setTimeout(() => {
+              window.location.href = '/onboarding';
+            }, 1000);
+          } else {
+            // Update status and redirect
+            setStatus("Successfully authenticated! Redirecting...");
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 1000);
+          }
         } else {
           throw new Error('No user data received');
         }
@@ -94,6 +104,7 @@ export default function Callback() {
     setDebugInfo({
       isAuthenticated, 
       isLoading, 
+      isNewUser,
       hasError: !!error,
       errorMessage: error ? error.message : null,
       urlError: errorParam,
@@ -111,9 +122,13 @@ export default function Callback() {
     if (!isLoading) {
       if (isAuthenticated && user) {
         // Authentication successful
-        setStatus("Authentication successful! Redirecting...");
-        // Redirect to home page after successful authentication
-        setTimeout(() => setLocation('/'), 1000);
+        if (isNewUser) {
+          setStatus("New user detected! Redirecting to onboarding...");
+          setTimeout(() => setLocation('/onboarding'), 1000);
+        } else {
+          setStatus("Authentication successful! Redirecting...");
+          setTimeout(() => setLocation('/'), 1000);
+        }
       } else if (error || errorParam) {
         // Authentication error
         const errorMessage = errorDescription || (error ? error.message : 'Unknown error');
@@ -134,7 +149,7 @@ export default function Callback() {
     } else {
       setStatus("Processing authentication...");
     }
-  }, [isAuthenticated, isLoading, error, user, errorParam, errorDescription, setLocation, code, state, hasAuthParams]);
+  }, [isAuthenticated, isLoading, error, user, errorParam, errorDescription, setLocation, code, state, hasAuthParams, isNewUser]);
 
   // Show an error card if there's an authentication error
   if (!isLoading && (error || errorParam)) {

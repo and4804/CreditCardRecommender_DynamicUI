@@ -5,7 +5,7 @@ import { FlightInterface } from "@/components/ui/flight-interface";
 import { ShoppingInterface } from "@/components/ui/shopping-interface";
 import { useInterface } from "@/lib/contexts/interface-context";
 import { useChat } from "@/lib/contexts/chat-context";
-import { PlaneIcon, HotelIcon, ShoppingBagIcon } from "lucide-react";
+import { PlaneIcon, HotelIcon, ShoppingBagIcon, CreditCard } from "lucide-react";
 import { clearChat } from "@/lib/openai";
 import Travel from "@/pages/travel";
 import Hotels from "@/pages/hotels";
@@ -77,6 +77,17 @@ function WelcomeInterface() {
             <h3 className="font-sf-pro font-medium mb-1">Shopping</h3>
             <p className="text-sm">Maximize discounts and rewards on purchases</p>
           </div>
+        </div>
+        
+        {/* Credit Card Recommendation Button */}
+        <div className="mt-8">
+          <a 
+            href="/credit-advisor" 
+            className="inline-flex items-center justify-center px-6 py-3 bg-[#FFB700] hover:bg-[#E5A500] text-[#1A1F71] font-bold rounded-lg shadow-lg transition-colors"
+          >
+            <CreditCard className="w-5 h-5 mr-2" />
+            Recommend me a credit card!
+          </a>
         </div>
       </div>
     </div>

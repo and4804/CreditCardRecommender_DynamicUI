@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Menu, User, Settings, LogOut, CreditCard, Map, ShoppingBag, Gift } from "lucide-react";
+import { Menu, User, Settings, LogOut, CreditCard, Map, ShoppingBag, Gift, CreditCardIcon, PieChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -75,6 +75,12 @@ export function HeaderNew() {
               <span>Benefits</span>
             </span>
           </Link>
+          <Link 
+            href="/credit-advisor"
+            className={`text-sm font-medium transition-colors hover:text-primary ${location === "/credit-advisor" ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Credit Advisor
+          </Link>
         </div>
         
         <div className="flex items-center space-x-4">
@@ -108,6 +114,18 @@ export function HeaderNew() {
                   <DropdownMenuItem onClick={() => setLocation('/profile')}>
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation('/financial-profile')}>
+                    <PieChart className="h-4 w-4 mr-2" />
+                    <span>Financial Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation('/direct-recommendations')}>
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    <span>Card Recommendations</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLocation('/cards')}>
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    <span>My Cards</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setLocation('/settings')}>
                     <Settings className="mr-2 h-4 w-4" />
@@ -152,6 +170,18 @@ export function HeaderNew() {
               <span>My Cards</span>
             </span>
           </Link>
+          <Link href="/financial-profile">
+            <span className="flex items-center px-4 py-2 hover:bg-[#2A3080] rounded">
+              <PieChart className="h-4 w-4 mr-2" />
+              <span>Financial Profile</span>
+            </span>
+          </Link>
+          <Link href="/direct-recommendations">
+            <span className="flex items-center px-4 py-2 hover:bg-[#2A3080] rounded">
+              <CreditCard className="h-4 w-4 mr-2" />
+              <span>Card Recommendations</span>
+            </span>
+          </Link>
           <Link href="/travel">
             <span className="flex items-center px-4 py-2 hover:bg-[#2A3080] rounded">
               <Map className="h-4 w-4 mr-2" />
@@ -169,6 +199,12 @@ export function HeaderNew() {
               <Gift className="h-4 w-4 mr-2" />
               <span>Benefits</span>
             </span>
+          </Link>
+          <Link 
+            href="/credit-advisor"
+            className={`text-sm font-medium transition-colors hover:text-primary ${location === "/credit-advisor" ? "text-primary" : "text-muted-foreground"}`}
+          >
+            Credit Advisor
           </Link>
         </div>
       )}

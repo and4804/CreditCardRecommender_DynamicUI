@@ -10,8 +10,15 @@ import {
   ShoppingOffer, 
   InsertShoppingOffer, 
   ChatMessage, 
-  InsertChatMessage 
+  InsertChatMessage,
+  financialProfiles,
+  cardRecommendations,
+  InsertFinancialProfile,
+  FinancialProfile,
+  InsertCardRecommendation,
+  CardRecommendation
 } from "@shared/schema";
+import { inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -45,6 +52,25 @@ export interface IStorage {
   getChatMessages(userId: number): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   clearChatMessages(userId: number): Promise<void>;
+
+  // Financial Profile methods
+  createFinancialProfile(data: InsertFinancialProfile): Promise<FinancialProfile>;
+  getFinancialProfileByUserId(userId: number): Promise<FinancialProfile | null>;
+  updateFinancialProfile(userId: number, data: Partial<InsertFinancialProfile>): Promise<FinancialProfile | null>;
+  createCardRecommendations(recommendations: InsertCardRecommendation[]): Promise<CardRecommendation[]>;
+  getCardRecommendationsByUserId(userId: number): Promise<CardRecommendation[]>;
+  deleteCardRecommendationsByUserId(userId: number): Promise<void>;
+}
+
+interface MemoryStorage {
+  users: Map<number, User>;
+  credit_cards: Map<number, CreditCard>;
+  flights: Map<number, Flight>;
+  hotels: Map<number, Hotel>;
+  shopping_offers: Map<number, ShoppingOffer>;
+  chat_messages: Map<number, ChatMessage>;
+  financial_profiles: FinancialProfile[];
+  card_recommendations: CardRecommendation[];
 }
 
 export class MemStorage implements IStorage {
@@ -54,6 +80,8 @@ export class MemStorage implements IStorage {
   private hotels: Map<number, Hotel>;
   private shoppingOffers: Map<number, ShoppingOffer>;
   private chatMessages: Map<number, ChatMessage>;
+  private financial_profiles: FinancialProfile[];
+  private card_recommendations: CardRecommendation[];
   
   private userIdCounter: number;
   private cardIdCounter: number;
@@ -61,6 +89,8 @@ export class MemStorage implements IStorage {
   private hotelIdCounter: number;
   private offerIdCounter: number;
   private messageIdCounter: number;
+  private financialProfileIdCounter: number;
+  private cardRecommendationIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -69,6 +99,8 @@ export class MemStorage implements IStorage {
     this.hotels = new Map();
     this.shoppingOffers = new Map();
     this.chatMessages = new Map();
+    this.financial_profiles = [];
+    this.card_recommendations = [];
     
     this.userIdCounter = 1;
     this.cardIdCounter = 1;
@@ -76,6 +108,8 @@ export class MemStorage implements IStorage {
     this.hotelIdCounter = 1;
     this.offerIdCounter = 1;
     this.messageIdCounter = 1;
+    this.financialProfileIdCounter = 1;
+    this.cardRecommendationIdCounter = 1;
 
     // Initialize with sample data
     this.initializeSampleData().catch(error => {
@@ -934,6 +968,69 @@ export class MemStorage implements IStorage {
       if (message.userId === userId) {
         this.chatMessages.delete(messageId);
       }
+    }
+  }
+
+  // Financial Profile methods
+  async createFinancialProfile(data: InsertFinancialProfile): Promise<FinancialProfile> {
+    const newProfile = {
+      id: this.getNextId('financial_profiles'),
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as FinancialProfile;
+    
+    this.financial_profiles.push(newProfile);
+    return newProfile;
+  }
+
+  async getFinancialProfileByUserId(userId: number): Promise<FinancialProfile | null> {
+    const profile = this.financial_profiles.find(p => p.userId === userId);
+    return profile || null;
+  }
+
+  async updateFinancialProfile(userId: number, data: Partial<InsertFinancialProfile>): Promise<FinancialProfile | null> {
+    const index = this.financial_profiles.findIndex(p => p.userId === userId);
+    if (index === -1) return null;
+    
+    const updatedProfile = {
+      ...this.financial_profiles[index],
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    this.financial_profiles[index] = updatedProfile;
+    return updatedProfile;
+  }
+
+  async createCardRecommendations(recommendations: InsertCardRecommendation[]): Promise<CardRecommendation[]> {
+    const newRecommendations = recommendations.map(rec => ({
+      id: this.getNextId('card_recommendations'),
+      ...rec,
+      createdAt: new Date().toISOString(),
+    })) as CardRecommendation[];
+    
+    this.card_recommendations.push(...newRecommendations);
+    return newRecommendations;
+  }
+
+  async getCardRecommendationsByUserId(userId: number): Promise<CardRecommendation[]> {
+    return this.card_recommendations.filter(rec => rec.userId === userId);
+  }
+
+  async deleteCardRecommendationsByUserId(userId: number): Promise<void> {
+    this.card_recommendations = this.card_recommendations.filter(rec => rec.userId !== userId);
+  }
+
+  // Helper method to get the next available ID for a specific entity
+  private getNextId(entity: string): number {
+    switch (entity) {
+      case 'financial_profiles':
+        return this.financialProfileIdCounter++;
+      case 'card_recommendations':
+        return this.cardRecommendationIdCounter++;
+      default:
+        throw new Error(`Unknown entity type: ${entity}`);
     }
   }
 }
