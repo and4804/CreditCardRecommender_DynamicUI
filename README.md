@@ -4,6 +4,27 @@ A travel booking application that shows flight options with card rewards benefit
 
 ## Running the Application
 
+### Contents of .env file- ####
+```
+DATABASE_URL=postgres://postgres:postgres@localhost:5433/replitcc
+# Replace this with your actual OpenAI API key
+OPENAI_API_KEY=your-openai-api-key
+
+# Auth0 Configuration
+AUTH0_DOMAIN=dev-v4g3q7uma25d66c2.us.auth0.com
+AUTH0_CLIENT_ID=uOMkgc6m0jAcRd6Z3Z56g1PA1eZnlHhQ
+AUTH0_CLIENT_SECRET=GiQcWsySDVMlf2jvu7i71I1_smnh-6peUSzBKTSbud1ArYrbZ9DkJ7ONZpcpKKyE
+AUTH0_CALLBACK_URL=http://localhost:3000/callback
+
+# MongoDB Configuration
+MONGODB_URI=mongodb://localhost:27017/replitcc
+USE_MONGODB=true
+
+# Storage Configuration 
+# Set to false to use PostgreSQL or MongoDB
+USE_MEM_STORAGE=false
+```
+
 This application can run with or without a database:
 
 ### Quick Start Options
@@ -52,4 +73,9 @@ When running in memory mode, you can log in with:
 - Browse flight options
 - View card rewards benefits
 - Filter flights by various criteria
+<<<<<<< HEAD
 - Log in to view personalized recommendations 
+=======
+- Log in to view personalized recommendations 
+okkk
+>>>>>>> 682a5660904463748ee106a5350f9530cc747365
