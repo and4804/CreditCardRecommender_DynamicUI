@@ -11,6 +11,7 @@ import {
 } from "@shared/schema";
 import { MongoDBStorage } from "./mongodb-storage";
 import { connectToMongoDB } from "./mongo-db";
+import { getRelevantCreditCards, CreditCardVectorData } from "./astra-db";
 
 // Check if we're using memory storage
 const useMemStorage = process.env.USE_MEM_STORAGE === 'true';
@@ -592,7 +593,7 @@ Remember that this user is from India and your recommendations should be tailore
         });
       
         // Log the complete response for debugging
-        console.log("COMPLETE OPENAI API RESPONSE:", JSON.stringify(response, null, 2));
+        console.log("COMPLETE OPENAI API RESPONSE:", response);
         
         // Try to parse the generated recommendations
         const content = response.choices[0]?.message?.content || "[]";
@@ -1407,7 +1408,9 @@ Remember that this user is from India and your recommendations should be tailore
       
       // Determine what data to use - profile from DB or form input
       const annualIncome = userProfile?.annualIncome || income;
-      const monthlyExpenses = userProfile?.monthlyExpense || expenses;
+      const monthlyExpenses = userProfile?.monthlySpending?.groceries 
+        ? Object.values(userProfile.monthlySpending).reduce((sum, val) => sum + (typeof val === 'number' ? val : 0), 0) 
+        : expenses;
       const userPreferences = userProfile?.preferredBenefits 
         ? Array.isArray(userProfile.preferredBenefits) 
           ? userProfile.preferredBenefits.join(", ") 
@@ -1494,6 +1497,36 @@ Important: Return ONLY the JSON object with no additional text.`;
     } catch (error) {
       console.error("[DIRECT-RECOMMENDATION] Error:", error);
       return res.status(500).json({ error: "Failed to get recommendation" });
+    }
+  });
+
+  // Test endpoint for AstraDB
+  app.get("/api/test-astra", async (req: Request, res: Response) => {
+    try {
+      const profile = {
+        annualIncome: 1200000,
+        creditScore: 750,
+        primarySpendingCategories: ["travel", "dining"],
+        travelFrequency: "frequently",
+        diningFrequency: "frequently",
+        preferredBenefits: ["cashback", "airport_lounge"]
+      };
+      
+      const astraDb = await import("./astra-db");
+      const cards = await astraDb.getRelevantCreditCards(profile);
+      
+      res.json({ 
+        success: true, 
+        count: cards.length, 
+        cards 
+      });
+    } catch (error) {
+      console.error("Error in test-astra endpoint:", error);
+      res.json({ 
+        success: false, 
+        error: String(error),
+        message: "Failed to query AstraDB"
+      });
     }
   });
 
@@ -1631,9 +1664,69 @@ async function generateCardRecommendations(userId: number, profile: FinancialPro
         ? `${profile.shoppingHabits.online}% online, ${profile.shoppingHabits.inStore}% in-store` 
         : 'Not specified';
     
-    // Create a more detailed prompt for the OpenAI API
+    // Fetch relevant credit cards from AstraDB based on user profile
+    let relevantCards: CreditCardVectorData[] = [];
+    try {
+      console.log("Fetching relevant credit cards from AstraDB...");
+      relevantCards = await getRelevantCreditCards({
+        annualIncome: typeof profile.annualIncome === 'string' ? parseInt(profile.annualIncome, 10) : profile.annualIncome,
+        creditScore: typeof profile.creditScore === 'string' ? parseInt(profile.creditScore, 10) : profile.creditScore,
+        primarySpendingCategories,
+        travelFrequency: profile.travelFrequency,
+        diningFrequency: profile.diningFrequency,
+        preferredBenefits
+      });
+      console.log(`Retrieved ${relevantCards.length} relevant cards from AstraDB`);
+    } catch (astraError) {
+      console.error("Error fetching cards from AstraDB:", astraError);
+      // Continue with the standard recommendation process if AstraDB fails
+    }
+    
+    // Create card data to include in the prompt
+    let cardDataForPrompt = "";
+    if (relevantCards.length > 0) {
+      cardDataForPrompt = "\n\n## Available Credit Cards from Database\nBelow are relevant credit cards from our database that may match this user's profile. Pay special attention to the MITC (Most Important Terms and Conditions) section for each card:\n\n";
+      
+      // Add each card's details to the prompt
+      relevantCards.forEach((card, index) => {
+        cardDataForPrompt += `### Card ${index + 1}: ${card.cardName} (${card.issuer})\n`;
+        cardDataForPrompt += `- Type: ${card.cardType}\n`;
+        cardDataForPrompt += `- Annual Fee: ₹${card.annualFee}\n`;
+        cardDataForPrompt += `- Minimum Income Required: ₹${card.minIncomeRequired}\n`;
+        cardDataForPrompt += `- Credit Score Required: ${card.creditScoreRequired}\n`;
+        
+        // Add rewards rates
+        cardDataForPrompt += `- Rewards:\n`;
+        Object.entries(card.rewardsRate).forEach(([category, rate]) => {
+          cardDataForPrompt += `  - ${category}: ${rate}\n`;
+        });
+        
+        // Add benefits
+        cardDataForPrompt += `- Benefits: ${card.benefitsSummary.join(', ')}\n`;
+        
+        // Add signup bonus if available
+        if (card.signupBonus) {
+          cardDataForPrompt += `- Signup Bonus: ${card.signupBonus}\n`;
+        }
+        
+        // Add additional card-specific details
+        if (card.feeWaiver) cardDataForPrompt += `- Fee Waiver: ${card.feeWaiver}\n`;
+        if (card.foreignTransactionFee) cardDataForPrompt += `- Foreign Transaction Fee: ${card.foreignTransactionFee}\n`;
+        if (card.airportLoungeAccess) cardDataForPrompt += `- Airport Lounge Access: ${card.airportLoungeAccess}\n`;
+        if (card.golfPrivileges) cardDataForPrompt += `- Golf Privileges: ${card.golfPrivileges}\n`;
+        
+        // Add MITC content - this is the key addition
+        if (card.mitc) {
+          cardDataForPrompt += `\n#### MITC (Most Important Terms and Conditions):\n${card.mitc.substring(0, 1500)}...\n`;
+        }
+        
+        cardDataForPrompt += "\n";
+      });
+    }
+    
+    // Create a more detailed prompt for the OpenAI API including AstraDB card data
     const prompt = `
-As a credit card recommendation expert for Indian consumers, analyze the following financial profile and provide EXACTLY THREE (3) personalized credit card recommendations. Your goal is to select cards that best match the user's spending patterns, lifestyle, and stated preferences.
+As a credit card recommendation expert for Indian consumers, analyze the following financial profile and provide EXACTLY FIVE (5) personalized credit card recommendations from the options provided. Your goal is to select cards that best match the user's spending patterns, lifestyle, and stated preferences.
 
 ## Financial Profile Details
 - Annual Income: ₹${profile.annualIncome.toLocaleString()}
@@ -1646,47 +1739,27 @@ As a credit card recommendation expert for Indian consumers, analyze the followi
 - Preferred Benefits: ${preferredBenefits.join(', ')}
 ${preferredAirlines.length > 0 ? `- Preferred Airlines: ${preferredAirlines.join(', ')}` : ''}
 ${existingCards.length > 0 ? `- Existing Cards: ${existingCards.join(', ')}` : ''}
+${cardDataForPrompt}
 
-## Recommendation Instructions
-1. Recommend EXACTLY 3 credit cards available in India - no more, no less
-2. Focus on cards that complement existing cards if any
-3. Prioritize cards with benefits matching the user's top spending categories
-4. Consider travel benefits importance based on their travel frequency
-5. Calculate a realistic match score (0-100) for each card based on fit to the profile
-6. Provide specific reasons why each card is recommended for this user
-7. Include relevant signup bonuses and reward rates
+## Instructions
+1. ONLY recommend cards from the provided list above. Do NOT invent or suggest cards that aren't in the list.
+2. For each recommendation, carefully analyze the MITC (Most Important Terms and Conditions) to extract relevant details that match the user's profile.
+3. Explain why each card is a good match based on the MITC content and user's financial profile.
+4. Provide a match score (0-100) for each card based on how well it aligns with the user's needs.
+5. Format your response as a JSON array with exactly 5 objects, each containing:
+   - cardName: The name of the card
+   - issuer: The bank/issuer
+   - cardType: The type of card
+   - annualFee: The annual fee
+   - rewardsRate: An object mapping categories to reward rates
+   - benefitsSummary: An array of benefit summaries
+   - primaryBenefits: An array of primary benefits
+   - matchScore: A number from 0-100 indicating match quality
+   - matchReason: A detailed explanation of why this card matches the user's profile, referencing specific terms from the MITC
+   - mitcHighlights: Key points from the MITC that are particularly relevant to this user
 
-THE RESPONSE MUST BE AN ARRAY OF EXACTLY 3 CARD OBJECTS using the following format:
-[
-  {
-    "cardName": "First Card Name",
-    "issuer": "Issuing bank name",
-    "cardType": "Primary card category (Travel/Cashback/Rewards/Premium)",
-    "annualFee": fee_in_rupees_as_number,
-    "rewardsRate": {
-      "category1": "X% or X points description",
-      "category2": "Y% or Y points description",
-      ...other relevant categories
-    },
-    "signupBonus": "Detailed description of welcome offers",
-    "benefitsSummary": ["Benefit 1", "Benefit 2", "Benefit 3", "Benefit 4"],
-    "primaryBenefits": ["Most important benefit 1", "Most important benefit 2"],
-    "matchScore": score_between_0_and_100,
-    "matchReason": "Detailed personalized explanation of why this card matches this user's specific profile",
-    "imageUrl": "URL to card image if available, or leave as empty string",
-    "applyUrl": "URL to application page if available, or leave as empty string"
-  },
-  {
-    "cardName": "Second Card Name",
-    ...second card details...
-  },
-  {
-    "cardName": "Third Card Name", 
-    ...third card details...
-  }
-]
-
-Important: Return ONLY the JSON array with EXACTLY 3 card recommendations with no additional text or explanation.`;
+Return ONLY the JSON array with no additional text.
+`;
 
     let recommendations;
     
@@ -1694,18 +1767,18 @@ Important: Return ONLY the JSON array with EXACTLY 3 card recommendations with n
       console.log("Calling OpenAI API for credit card recommendations");
       
       // Call OpenAI API to generate recommendations
-      console.log("Sending request to OpenAI API with prompt:", prompt);
+      console.log("Sending request to OpenAI API with prompt containing AstraDB card data and MITC information");
       const response = await openai.chat.completions.create({
         model: "gpt-4o", // Using the latest GPT-4o model for better recommendations
         messages: [
           { 
             role: "system", 
-            content: "You are an expert credit card advisor who specializes in Indian credit cards. You provide detailed, accurate recommendations based on financial profiles. ALWAYS provide EXACTLY 3 credit card recommendations in the requested format." 
+            content: "You are an expert credit card advisor who specializes in Indian credit cards. You provide detailed, accurate recommendations based on financial profiles and our database of cards. Your analysis should focus on the MITC (Most Important Terms and Conditions) of each card to provide precise recommendations. ALWAYS provide EXACTLY 5 credit card recommendations in the requested format. Only recommend cards from the provided list, DO NOT invent or hallucinate cards." 
           },
           { role: "user", content: prompt }
         ],
-        temperature: 0.4, // Lower temperature for more consistent, deterministic recommendations
-        max_tokens: 3000, // Increased token limit for more detailed responses
+        temperature: 0.3, // Lower temperature for more consistent, deterministic recommendations
+        max_tokens: 3500, // Increased token limit for more detailed responses
         response_format: { type: "json_object" } // Ensure JSON response
       });
       
@@ -1732,116 +1805,118 @@ Important: Return ONLY the JSON array with EXACTLY 3 card recommendations with n
           }
         }
         
-        // Ensure we have exactly 3 recommendations
+        // Ensure we have exactly 5 recommendations if using AstraDB cards, otherwise 3
+        const targetCount = relevantCards.length > 0 ? 5 : 3;
+        
+        // If we have fewer than targetCount recommendations, add fallback ones to reach targetCount
         if (Array.isArray(recommendations)) {
-          console.log(`OpenAI returned ${recommendations.length} recommendations`);
+          console.log(`OpenAI returned ${recommendations.length} recommendations, target is ${targetCount}`);
           
-          // If we have fewer than 3 recommendations, add fallback ones to reach 3
-          if (recommendations.length < 3) {
-            console.log(`Adding ${3 - recommendations.length} fallback recommendations to reach 3`);
+          if (recommendations.length < targetCount) {
+            console.log(`Adding ${targetCount - recommendations.length} fallback recommendations to reach ${targetCount}`);
             
-            // Create a FinancialProfile object from the user's profile
-            const profile: FinancialProfile = {
-              userId: user._id.toString(),
-              annualIncome: user.financialProfile.annualIncome,
-              creditScore: user.financialProfile.creditScore,
-              monthlySpending: user.financialProfile.monthlySpending || {},
-              primarySpendingCategories: user.financialProfile.primarySpendingCategories || [],
-              travelFrequency: user.financialProfile.travelFrequency || 'occasionally',
-              diningFrequency: user.financialProfile.diningFrequency || 'occasionally',
-              preferredBenefits: user.financialProfile.preferredBenefits || [],
-              preferredAirlines: user.financialProfile.preferredAirlines || [],
-              existingCards: user.financialProfile.existingCards || [],
-              shoppingHabits: user.financialProfile.shoppingHabits || { online: 50, inStore: 50 }
+            // Create a FinancialProfile object based directly on the provided profile parameter
+            const fallbackProfile = {
+              userId: profile.userId, // Use the profile's userId directly
+              annualIncome: profile.annualIncome,
+              creditScore: profile.creditScore,
+              monthlySpending: profile.monthlySpending || {},
+              primarySpendingCategories: primarySpendingCategories,
+              travelFrequency: profile.travelFrequency || 'occasionally',
+              diningFrequency: profile.diningFrequency || 'occasionally',
+              preferredBenefits: preferredBenefits,
+              preferredAirlines: preferredAirlines,
+              existingCards: existingCards,
+              shoppingHabits: profile.shoppingHabits || { online: 50, inStore: 50 }
             };
             
-            const fallbackRecs = generateFallbackRecommendations(profile);
+            const fallbackRecs = generateFallbackRecommendations(fallbackProfile as FinancialProfile);
             
-            // Add only as many fallback recommendations as needed to reach 3 total
-            const neededFallbacks = 3 - recommendations.length;
+            // Add only as many fallback recommendations as needed to reach targetCount total
+            const neededFallbacks = targetCount - recommendations.length;
             recommendations = [
               ...recommendations,
               ...fallbackRecs.slice(0, neededFallbacks)
             ];
           } 
-          // If we have more than 3, take only the top 3 by match score
-          else if (recommendations.length > 3) {
-            console.log(`Received ${recommendations.length} recommendations, reducing to top 3 by match score`);
+          // If we have more than targetCount, take only the top ones by match score
+          else if (recommendations.length > targetCount) {
+            console.log(`Received ${recommendations.length} recommendations, reducing to top ${targetCount} by match score`);
             recommendations = recommendations
               .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0))
-              .slice(0, 3);
+              .slice(0, targetCount);
           }
         }
       } catch (parseError) {
         // If direct parsing fails, use fallback recommendations
         console.error("JSON parse error:", parseError);
         
-        // Create a FinancialProfile object from the user's profile
-        const profile: FinancialProfile = {
-          userId: user._id.toString(),
-          annualIncome: user.financialProfile.annualIncome,
-          creditScore: user.financialProfile.creditScore,
-          monthlySpending: user.financialProfile.monthlySpending || {},
-          primarySpendingCategories: user.financialProfile.primarySpendingCategories || [],
-          travelFrequency: user.financialProfile.travelFrequency || 'occasionally',
-          diningFrequency: user.financialProfile.diningFrequency || 'occasionally',
-          preferredBenefits: user.financialProfile.preferredBenefits || [],
-          preferredAirlines: user.financialProfile.preferredAirlines || [],
-          existingCards: user.financialProfile.existingCards || [],
-          shoppingHabits: user.financialProfile.shoppingHabits || { online: 50, inStore: 50 }
+        // Create a FinancialProfile object based directly on the provided profile parameter
+        const fallbackProfile = {
+          userId: profile.userId,
+          annualIncome: profile.annualIncome,
+          creditScore: profile.creditScore,
+          monthlySpending: profile.monthlySpending || {},
+          primarySpendingCategories: primarySpendingCategories,
+          travelFrequency: profile.travelFrequency || 'occasionally',
+          diningFrequency: profile.diningFrequency || 'occasionally',
+          preferredBenefits: preferredBenefits,
+          preferredAirlines: preferredAirlines,
+          existingCards: existingCards,
+          shoppingHabits: profile.shoppingHabits || { online: 50, inStore: 50 }
         };
         
-        recommendations = generateFallbackRecommendations(profile);
+        recommendations = generateFallbackRecommendations(fallbackProfile as FinancialProfile);
       }
     } catch (openaiError) {
       console.error("OpenAI API error:", openaiError);
       
-      // Create a FinancialProfile object from the user's profile
-      const profile: FinancialProfile = {
-        userId: user._id.toString(),
-        annualIncome: user.financialProfile.annualIncome,
-        creditScore: user.financialProfile.creditScore,
-        monthlySpending: user.financialProfile.monthlySpending || {},
-        primarySpendingCategories: user.financialProfile.primarySpendingCategories || [],
-        travelFrequency: user.financialProfile.travelFrequency || 'occasionally',
-        diningFrequency: user.financialProfile.diningFrequency || 'occasionally',
-        preferredBenefits: user.financialProfile.preferredBenefits || [],
-        preferredAirlines: user.financialProfile.preferredAirlines || [],
-        existingCards: user.financialProfile.existingCards || [],
-        shoppingHabits: user.financialProfile.shoppingHabits || { online: 50, inStore: 50 }
+      // Create a FinancialProfile object based directly on the provided profile parameter
+      const fallbackProfile = {
+        userId: profile.userId,
+        annualIncome: profile.annualIncome,
+        creditScore: profile.creditScore,
+        monthlySpending: profile.monthlySpending || {},
+        primarySpendingCategories: primarySpendingCategories,
+        travelFrequency: profile.travelFrequency || 'occasionally',
+        diningFrequency: profile.diningFrequency || 'occasionally',
+        preferredBenefits: preferredBenefits,
+        preferredAirlines: preferredAirlines,
+        existingCards: existingCards,
+        shoppingHabits: profile.shoppingHabits || { online: 50, inStore: 50 }
       };
       
       // Use fallback recommendations when OpenAI API fails
       console.log("Using fallback recommendations due to OpenAI API error");
-      recommendations = generateFallbackRecommendations(profile);
+      recommendations = generateFallbackRecommendations(fallbackProfile as FinancialProfile);
     }
     
     // Ensure recommendations is an array
     if (!Array.isArray(recommendations)) {
       console.error("Invalid recommendations format:", recommendations);
       
-      // Create a FinancialProfile object from the user's profile
-      const profile: FinancialProfile = {
-        userId: user._id.toString(),
-        annualIncome: user.financialProfile.annualIncome,
-        creditScore: user.financialProfile.creditScore,
-        monthlySpending: user.financialProfile.monthlySpending || {},
-        primarySpendingCategories: user.financialProfile.primarySpendingCategories || [],
-        travelFrequency: user.financialProfile.travelFrequency || 'occasionally',
-        diningFrequency: user.financialProfile.diningFrequency || 'occasionally',
-        preferredBenefits: user.financialProfile.preferredBenefits || [],
-        preferredAirlines: user.financialProfile.preferredAirlines || [],
-        existingCards: user.financialProfile.existingCards || [],
-        shoppingHabits: user.financialProfile.shoppingHabits || { online: 50, inStore: 50 }
+      // Create a FinancialProfile object based directly on the provided profile parameter
+      const fallbackProfile = {
+        userId: profile.userId,
+        annualIncome: profile.annualIncome,
+        creditScore: profile.creditScore,
+        monthlySpending: profile.monthlySpending || {},
+        primarySpendingCategories: primarySpendingCategories,
+        travelFrequency: profile.travelFrequency || 'occasionally',
+        diningFrequency: profile.diningFrequency || 'occasionally',
+        preferredBenefits: preferredBenefits,
+        preferredAirlines: preferredAirlines,
+        existingCards: existingCards,
+        shoppingHabits: profile.shoppingHabits || { online: 50, inStore: 50 }
       };
       
-      recommendations = generateFallbackRecommendations(profile);
+      recommendations = generateFallbackRecommendations(fallbackProfile as FinancialProfile);
     }
     
-    // Add the user's MongoDB ID to each recommendation
+    // Add the user's ID to each recommendation
     const recommendationsWithUserId = recommendations.map((rec: any) => ({
       ...rec,
-      userId: user._id.toString(),
+      userId: userId,
       // Convert the annual fee to a string if it's a number
       annualFee: typeof rec.annualFee === 'number' ? String(rec.annualFee) : rec.annualFee,
       // Ensure required properties have default values if missing
@@ -1849,29 +1924,20 @@ Important: Return ONLY the JSON array with EXACTLY 3 card recommendations with n
       benefitsSummary: Array.isArray(rec.benefitsSummary) ? rec.benefitsSummary : [],
       primaryBenefits: Array.isArray(rec.primaryBenefits) ? rec.primaryBenefits : [],
       matchScore: rec.matchScore || 75,
-      matchReason: rec.matchReason || "Recommended based on your profile"
+      matchReason: rec.matchReason || "Recommended based on your profile",
+      // Include MITC highlights if available
+      mitcHighlights: Array.isArray(rec.mitcHighlights) ? rec.mitcHighlights : 
+                     (rec.mitcHighlights ? [rec.mitcHighlights] : [])
     }));
     
-    console.log(`Saving ${recommendationsWithUserId.length} recommendations for user: ${user._id}`);
+    console.log(`Saving ${recommendationsWithUserId.length} recommendations for user: ${userId}`);
     
-    // Save recommendations to MongoDB
-    try {
-      await mongoDBStorage.deleteCardRecommendationsByUserId(user._id.toString());
-      await mongoDBStorage.createCardRecommendations(recommendationsWithUserId);
-      console.log(`Successfully saved recommendations for user: ${user._id}`);
-    } catch (saveError) {
-      console.error(`Error saving recommendations for user ${user._id}:`, saveError);
-      // Continue anyway since we already have the recommendations in memory
-    }
+    // Save recommendations to storage
+    await storage.createCardRecommendations(recommendationsWithUserId);
+    console.log(`Successfully saved recommendations for user: ${userId}`);
     
-    // Return recommendations
-    return res.status(200).json(recommendationsWithUserId);
   } catch (error) {
     console.error("Error generating recommendations:", error);
-    return res.status(500).json({ 
-      error: "Failed to generate recommendations",
-      message: error instanceof Error ? error.message : String(error)
-    });
   }
 }
 

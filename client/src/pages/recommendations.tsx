@@ -48,6 +48,45 @@ const FALLBACK_DATA: CardRecommendation[] = [
       "2% cashback on partner merchants",
       "1% cashback on all other spends"
     ]
+  },
+  {
+    cardName: "SBI SimplyCLICK Credit Card",
+    issuer: "State Bank of India",
+    cardType: "Online Shopping Rewards",
+    annualFee: 499,
+    matchScore: 85,
+    matchReason: "Good for online shopping with reasonable annual fee",
+    benefitsSummary: [
+      "5X rewards on all online spends",
+      "1% fuel surcharge waiver",
+      "eGift vouchers on milestone spends"
+    ]
+  },
+  {
+    cardName: "HDFC Regalia",
+    issuer: "HDFC Bank",
+    cardType: "Lifestyle Rewards",
+    annualFee: 2500,
+    matchScore: 80,
+    matchReason: "Good all-around card with travel and lifestyle benefits",
+    benefitsSummary: [
+      "Airport lounge access in India",
+      "4X rewards on all spending",
+      "Dining and entertainment discounts"
+    ]
+  },
+  {
+    cardName: "Axis Bank Ace Credit Card",
+    issuer: "Axis Bank",
+    cardType: "Cashback",
+    annualFee: 499,
+    matchScore: 75,
+    matchReason: "Good for everyday spending with unlimited cashback",
+    benefitsSummary: [
+      "2% cashback on all online spending",
+      "1% cashback on all offline spending",
+      "Movie ticket discounts"
+    ]
   }
 ];
 

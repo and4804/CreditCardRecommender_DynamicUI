@@ -31,6 +31,7 @@ export default function Travel() {
   useEffect(() => {
     // Check if there are query parameters
     if (location.includes('?')) {
+      
       const queryParams = new URLSearchParams(location.split('?')[1]);
       const selected = queryParams.get('selected');
       const from = queryParams.get('from');
