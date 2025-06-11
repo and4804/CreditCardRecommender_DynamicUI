@@ -11,7 +11,7 @@ import {
 } from "@shared/schema";
 import { MongoDBStorage } from "./mongodb-storage";
 import { connectToMongoDB } from "./mongo-db";
-import { getRelevantCreditCards, CreditCardVectorData, generateMITCBasedRecommendations } from "./astra-db";
+import { getRelevantCreditCards, CreditCardVectorData } from "./astra-db";
 import { ChatCompletionMessageParam } from "openai/resources";
 
 // Check if we're using memory storage
@@ -1426,7 +1426,7 @@ Remember that this user is from India and your recommendations should be tailore
         
       // Create a prompt for OpenAI
       const prompt = `
-As an expert credit card advisor for Indian users, recommend TWO credit cards based on the following information:
+As an expert credit card advisor for Indian users, recommend ONE credit card based on the following information:
 
 - Annual Income: ₹${annualIncome}
 - Monthly Expenses: ${monthlyExpenses ? `₹${monthlyExpenses}` : "Not specified"}
@@ -1472,7 +1472,6 @@ Important: Return ONLY the JSON object with no additional text.`;
       
       // Get the recommendation
       const content = response.choices[0]?.message?.content || "{}";
-      console.log("[PROMPT] Prompt:", prompt);
       console.log("[DIRECT-RECOMMENDATION] Raw OpenAI response:", content);
       
       try {
@@ -1683,40 +1682,6 @@ async function generateCardRecommendations(userId: number, profile: FinancialPro
       console.error("Error fetching cards with MITC content from AstraDB:", astraError);
     }
     
-    // If we have MITC cards, use those for MITC-based recommendations
-    if (mitcCards.length > 0) {
-      console.log("Using MITC-based recommendation approach");
-      
-      try {
-        // Use the new function from astra-db.ts
-        const mitcRecommendations = await generateMITCBasedRecommendations({
-          userId,
-          annualIncome: typeof profile.annualIncome === 'string' ? parseInt(profile.annualIncome, 10) : profile.annualIncome,
-          creditScore: typeof profile.creditScore === 'string' ? parseInt(profile.creditScore, 10) : profile.creditScore,
-          monthlySpending: profile.monthlySpending as Record<string, number>,
-          primarySpendingCategories,
-          travelFrequency: profile.travelFrequency,
-          diningFrequency: profile.diningFrequency,
-          preferredBenefits,
-          preferredAirlines,
-          existingCards,
-          shoppingHabits: profile.shoppingHabits as { online: number; inStore: number } | undefined
-        }, 5);
-        
-        if (mitcRecommendations.length > 0) {
-          // Save recommendations to database
-          await storage.createCardRecommendations(mitcRecommendations);
-          console.log(`Saved ${mitcRecommendations.length} MITC-based credit card recommendations for user ${userId}`);
-          return;
-        } else {
-          console.log("No MITC-based recommendations generated, falling back to standard approach");
-        }
-      } catch (mitcError) {
-        console.error("Error generating MITC-based recommendations:", mitcError);
-        console.log("Falling back to standard recommendation approach");
-      }
-    }
-    
     // Second approach: Get relevant credit cards from AstraDB based on user profile
     let relevantCards: CreditCardVectorData[] = [];
     if (mitcCards.length === 0) {
@@ -1739,104 +1704,134 @@ async function generateCardRecommendations(userId: number, profile: FinancialPro
     // Determine which set of cards to use
     const cardsToUse = mitcCards.length > 0 ? mitcCards : relevantCards;
     
-    // If we have cards from AstraDB, use them for standard recommendations
-    if (cardsToUse.length > 0) {
+    // If we have MITC cards, use those for MITC-based recommendations
+    if (mitcCards.length > 0) {
+      console.log("Using MITC-based recommendation approach");
+      
+      // Extract MITC content from each card
+      const cardsWithTerms = mitcCards.map(card => {
+        // Use type assertion for properties that might not be in the type definition
+        const cardData = card as CreditCardVectorData & { _id?: string; type?: string; $vectorize?: string };
+        const cardId = cardData.id || cardData._id || "";
+        const cardType = cardData.cardType || cardData.type || "Credit Card";
+        const mitcContent = cardData.$vectorize || "No terms available";
+        
+        return {
+          id: cardId,
+          type: cardType,
+          name: cardData.cardName || "Credit Card",
+          issuer: cardData.issuer || "Unknown",
+          terms: mitcContent
+        };
+      });
+      
+      // Create a prompt for OpenAI with properly typed messages
+      const mitcMessages: ChatCompletionMessageParam[] = [
+        {
+          role: "system",
+          content: `You are a financial advisor specializing in credit card recommendations. 
+          Your task is to analyze credit card terms and conditions fragments and match them with a user's financial profile.
+          For each recommended card:
+          1. EXTRACT THE CARD NAME: Look for brand names (HDFC, Kotak, etc.) and card types in the terms.
+          2. FOCUS ON BENEFITS: Identify rewards, cashback, travel benefits, insurance, etc.
+          3. PROVIDE A MATCH SCORE: Rate how well the card matches the user's profile (0-100%).
+          4. HIGHLIGHT KEY FEATURES: Focus on user-friendly benefits, not legal terms.
+          
+          If the terms are too fragmentary to determine benefits, focus on what you can extract and be honest about limitations.
+          
+          Return EXACTLY 5 credit card recommendations formatted as a JSON array with objects containing:
+          - cardName: The name of the card
+          - issuer: The bank/issuer
+          - cardType: The type of card (e.g., Travel, Cashback, Rewards)
+          - annualFee: The annual fee (use 0 if unknown)
+          - rewardsRate: An object mapping categories to reward rates (e.g., {"Dining": "5%", "Travel": "3x points"})
+          - benefitsSummary: An array of benefit summaries
+          - primaryBenefits: An array of primary benefits
+          - matchScore: A number from 0-100 indicating match quality
+          - matchReason: A detailed explanation of why this card matches the user's profile`
+        },
+        {
+          role: "user",
+          content: `Please recommend the top 5 credit cards for this user based on their financial profile and the available credit card terms:
+          
+          # User Financial Profile
+          - Annual Income: ₹${profile.annualIncome.toLocaleString()}
+          - Credit Score: ${profile.creditScore}
+          - Monthly Spending Breakdown: ${formattedSpending}
+          - Top Spending Categories: ${primarySpendingCategories.join(', ')}
+          - Travel Frequency: ${profile.travelFrequency}
+          - Dining Frequency: ${profile.diningFrequency}
+          - Shopping Habits: ${shoppingHabitsText}
+          - Preferred Benefits: ${preferredBenefits.join(', ')}
+          ${preferredAirlines.length > 0 ? `- Preferred Airlines: ${preferredAirlines.join(', ')}` : ''}
+          ${existingCards.length > 0 ? `- Existing Cards: ${existingCards.join(', ')}` : ''}
+          
+          # Available Credit Card Terms
+          ${cardsWithTerms.map((card, index) => 
+            `Card ${index + 1} (ID: ${card.id}, Name: ${card.name}, Issuer: ${card.issuer}):
+            ${card.terms.substring(0, 500)}...`
+          ).join('\n\n')}
+          
+          For each recommendation, provide:
+          1. Card Name (be specific if possible)
+          2. Issuer (bank or financial institution)
+          3. Card Type (e.g., Travel, Cashback, Rewards)
+          4. Annual Fee (use 0 if unknown)
+          5. Rewards Rate (as an object mapping categories to rates)
+          6. Benefits Summary (array of benefits)
+          7. Primary Benefits (array of key benefits)
+          8. Match Score (percentage)
+          9. Match Reason (why this card is suitable for the user)
+          
+          Return the recommendations as a JSON array.`
+        }
+      ];
+      
+      // Update the OpenAI API call for MITC-based recommendations
+      console.log("Calling OpenAI API for MITC-based credit card recommendations");
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: mitcMessages,
+        temperature: 0.3,
+        response_format: { type: "json_object" }
+      });
+      
+      // Try to parse the generated recommendations
+      const content = response.choices[0]?.message?.content || "[]";
+      console.log("RAW CONTENT FROM OPENAI:", content);
+      
+      // Clean the response - sometimes the model returns non-JSON wrapped content
+      const jsonContent = content.replace(/```json\s+|\s+```|```/g, '');
+      console.log("CLEANED CONTENT:", jsonContent);
+      
       try {
-        // Format cards for the prompt
-        const formattedCards = cardsToUse.map(card => {
-          return {
-            id: card.id || "",
-            name: card.cardName || "Credit Card",
-            issuer: card.issuer || "Unknown",
-            type: card.cardType || "Credit Card",
-            annualFee: card.annualFee || 0,
-            rewardsRate: card.rewardsRate || {},
-            signupBonus: card.signupBonus || "",
-            benefitsSummary: card.benefitsSummary || [],
-            primaryBenefits: card.primaryBenefits || []
-          };
-        });
+        // Try to parse the JSON content directly
+        let recommendations = JSON.parse(jsonContent);
         
-        // Create a prompt for OpenAI
-        const prompt = `
-        Please recommend the top 3 credit cards for this user based on their financial profile and our database of cards:
-        
-        # User Financial Profile
-        - Annual Income: ₹${profile.annualIncome.toLocaleString()}
-        - Credit Score: ${profile.creditScore}
-        - Monthly Spending Breakdown: ${formattedSpending}
-        - Top Spending Categories: ${primarySpendingCategories.join(', ')}
-        - Travel Frequency: ${profile.travelFrequency}
-        - Dining Frequency: ${profile.diningFrequency}
-        - Shopping Habits: ${shoppingHabitsText}
-        - Preferred Benefits: ${preferredBenefits.join(', ')}
-        ${preferredAirlines.length > 0 ? `- Preferred Airlines: ${preferredAirlines.join(', ')}` : ''}
-        ${existingCards.length > 0 ? `- Existing Cards: ${existingCards.join(', ')}` : ''}
-        
-        # Available Credit Cards
-        ${JSON.stringify(formattedCards, null, 2)}
-        
-        For each recommendation, provide:
-        1. Card ID (from our database)
-        2. Card Name
-        3. Issuer (bank or financial institution)
-        4. Card Type (e.g., Travel, Cashback, Rewards)
-        5. Annual Fee
-        6. Rewards Rate (as an object mapping categories to rates)
-        7. Benefits Summary (array of benefits)
-        8. Primary Benefits (array of key benefits)
-        9. Match Score (percentage)
-        10. Match Reason (why this card is suitable for the user)
-        
-        Return the recommendations as a JSON array.
-        `;
-        
-        // Create properly typed messages for OpenAI
-        const messages: ChatCompletionMessageParam[] = [
-          { 
-            role: "system", 
-            content: "You are an expert credit card advisor who specializes in Indian credit cards. You provide detailed, accurate recommendations based on financial profiles and our database of cards. Your analysis should focus on matching the user's spending patterns, preferences, and needs with the most suitable cards. ALWAYS provide EXACTLY 3 credit card recommendations in the requested format. Only recommend cards from the provided list, DO NOT invent or hallucinate cards." 
-          },
-          { role: "user", content: prompt }
-        ];
-        
-        // Call OpenAI API
-        console.log("Calling OpenAI API for credit card recommendations");
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: messages,
-          temperature: 0.3,
-          max_tokens: 3500,
-          response_format: { type: "json_object" }
-        });
-        
-        // Process the response
-        const content = response.choices[0]?.message?.content || "{}";
-        console.log("Received response from OpenAI");
-        
-        try {
-          // Parse the response
-          const jsonContent = content.replace(/```json\s+|\s+```|```/g, '');
-          let parsedResponse = JSON.parse(jsonContent);
-          
-          // Handle different response formats
-          let recommendations = [];
-          if (Array.isArray(parsedResponse)) {
-            recommendations = parsedResponse;
-          } else if (parsedResponse.recommendations && Array.isArray(parsedResponse.recommendations)) {
-            recommendations = parsedResponse.recommendations;
+        // Handle if OpenAI returns a single object instead of an array
+        if (recommendations && !Array.isArray(recommendations)) {
+          console.log("OpenAI returned a single object, converting to array");
+          // If we get recommendations wrapped in another object
+          if (recommendations.recommendations && Array.isArray(recommendations.recommendations)) {
+            recommendations = recommendations.recommendations;
           } else {
-            recommendations = [parsedResponse];
+            recommendations = [recommendations];
           }
+        }
+        
+        // Ensure we have exactly 5 recommendations if using AstraDB cards, otherwise 3
+        const targetCount = cardsToUse.length > 0 ? 5 : 3;
+        
+        // If we have fewer than targetCount recommendations, add fallback ones to reach targetCount
+        if (Array.isArray(recommendations)) {
+          console.log(`OpenAI returned ${recommendations.length} recommendations, target is ${targetCount}`);
           
-          // Ensure we have at least 3 recommendations
-          const targetCount = 3;
           if (recommendations.length < targetCount) {
-            console.log(`Adding fallback recommendations to reach ${targetCount}`);
+            console.log(`Adding ${targetCount - recommendations.length} fallback recommendations to reach ${targetCount}`);
             
-            // Create a FinancialProfile object for fallback recommendations
+            // Create a FinancialProfile object based directly on the provided profile parameter
             const fallbackProfile = {
-              userId: profile.userId,
+              userId: profile.userId, // Use the profile's userId directly
               annualIncome: profile.annualIncome,
               creditScore: profile.creditScore,
               monthlySpending: profile.monthlySpending || {},
@@ -1865,7 +1860,7 @@ async function generateCardRecommendations(userId: number, profile: FinancialPro
             cardName?: string;
             issuer?: string;
             cardType?: string;
-            annualFee?: number | string;
+            annualFee?: number;
             rewardsRate?: Record<string, string>;
             signupBonus?: string;
             benefitsSummary?: string[];
@@ -1889,8 +1884,8 @@ async function generateCardRecommendations(userId: number, profile: FinancialPro
           // Save recommendations to database
           await storage.createCardRecommendations(recsToSave);
           console.log(`Saved ${recsToSave.length} credit card recommendations for user ${userId}`);
-        } catch (parseError) {
-          console.error("Error parsing OpenAI response:", parseError);
+        } else {
+          console.error("OpenAI response was not an array or object with recommendations");
           // Generate and save fallback recommendations
           const fallbackRecs = generateFallbackRecommendations(profile as FinancialProfile);
           await storage.createCardRecommendations(fallbackRecs.map(rec => ({
@@ -1899,8 +1894,8 @@ async function generateCardRecommendations(userId: number, profile: FinancialPro
           })));
           console.log(`Saved ${fallbackRecs.length} fallback credit card recommendations for user ${userId}`);
         }
-      } catch (openaiError) {
-        console.error("Error calling OpenAI API:", openaiError);
+      } catch (parseError) {
+        console.error("Error parsing OpenAI response:", parseError);
         // Generate and save fallback recommendations
         const fallbackRecs = generateFallbackRecommendations(profile as FinancialProfile);
         await storage.createCardRecommendations(fallbackRecs.map(rec => ({
@@ -1909,8 +1904,8 @@ async function generateCardRecommendations(userId: number, profile: FinancialPro
         })));
         console.log(`Saved ${fallbackRecs.length} fallback credit card recommendations for user ${userId}`);
       }
-    } else {
-      console.log("No cards found in AstraDB, using fallback recommendations");
+    } catch (openaiError) {
+      console.error("Error calling OpenAI API:", openaiError);
       // Generate and save fallback recommendations
       const fallbackRecs = generateFallbackRecommendations(profile as FinancialProfile);
       await storage.createCardRecommendations(fallbackRecs.map(rec => ({
