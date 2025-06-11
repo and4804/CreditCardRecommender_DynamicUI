@@ -63,8 +63,12 @@ export default function CreditAdvisor() {
       
       const data = await response.json();
       
-      // Handle both array responses and single object responses
-      if (Array.isArray(data)) {
+      // Handle the response structure from the backend
+      if (data && data.allRecommendations && Array.isArray(data.allRecommendations)) {
+        // Backend returns { allRecommendations: [...] }
+        setRecommendations(data.allRecommendations);
+      } else if (Array.isArray(data)) {
+        // Direct array response
         setRecommendations(data);
       } else if (data && typeof data === 'object') {
         // If it's a single object, wrap it in an array
@@ -124,7 +128,7 @@ export default function CreditAdvisor() {
             {recommendations.length > 1 ? (
               <Tabs defaultValue="0" className="w-full" onValueChange={(value) => setActiveCardIndex(parseInt(value))}>
                 <div className="px-6">
-                  <TabsList className="grid grid-cols-5 w-full">
+                  <TabsList className={`grid w-full ${recommendations.length <= 5 ? `grid-cols-${recommendations.length}` : 'grid-cols-4 lg:grid-cols-7'}`}>
                     {recommendations.map((card, index) => (
                       <TabsTrigger key={index} value={index.toString()} className="text-xs sm:text-sm">
                         {index === 0 ? "Top Pick" : `Option ${index + 1}`}

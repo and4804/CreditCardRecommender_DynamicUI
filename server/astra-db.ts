@@ -126,40 +126,110 @@ export async function getRelevantCreditCards(
  * Get credit cards with MITC content from AstraDB
  * This function specifically requests the $vectorize field which contains MITC data
  */
-export async function getCreditCardsWithMITC(limit: number = 20): Promise<CreditCardVectorData[]> {
+export async function getCreditCardsWithMITC(): Promise<CreditCardVectorData[]> {
   try {
-    // Initialize AstraDB client
-    const ASTRA_DB_ID = process.env.ASTRA_DB_ID;
-    const ASTRA_DB_REGION = process.env.ASTRA_DB_REGION;
-    const ASTRA_DB_TOKEN = process.env.ASTRA_DB_TOKEN;
-    const ASTRA_DB_NAMESPACE = process.env.ASTRA_DB_NAMESPACE || "default_keyspace";
-    const ASTRA_DB_COLLECTION = process.env.ASTRA_DB_COLLECTION || "cc_details";
+    console.log("🔍 Fetching credit cards with MITC from AstraDB...");
     
-    if (!ASTRA_DB_ID || !ASTRA_DB_REGION || !ASTRA_DB_TOKEN) {
-      console.error("AstraDB environment variables not set properly");
+    const client = new DataAPIClient();
+    
+    if (!process.env.ASTRA_DB_ID || !process.env.ASTRA_DB_REGION || !process.env.ASTRA_DB_TOKEN) {
+      console.error("❌ Missing AstraDB environment variables");
       return [];
     }
     
-    // Creating client using v2.0.1 API
-    const client = new DataAPIClient();
-    const endpoint = `https://${ASTRA_DB_ID}-${ASTRA_DB_REGION}.apps.astra.datastax.com`;
-    const db = client.db(endpoint, { token: ASTRA_DB_TOKEN, keyspace: ASTRA_DB_NAMESPACE });
+    const endpoint = `https://${process.env.ASTRA_DB_ID}-${process.env.ASTRA_DB_REGION}.apps.astra.datastax.com`;
+    const db = client.db(endpoint, { 
+      token: process.env.ASTRA_DB_TOKEN,
+      keyspace: process.env.ASTRA_DB_NAMESPACE || "default_keyspace"
+    });
     
-    // Get the collection
-    const collection = await db.collection(ASTRA_DB_COLLECTION);
+    // Use rag_collection instead of cc_details since that's where the actual data is
+    const collection = await db.collection("rag_collection");
     
-    // Query for documents with the $vectorize field
-    const documents = await collection.find({}, { 
-      projection: { _id: 1, type: 1, $vectorize: 1 } 
-    }).limit(limit).toArray();
+    // Get documents from the collection
+    const documents = await collection.find({}).limit(20).toArray();
+    console.log(`📊 Found ${documents.length} documents in rag_collection`);
     
-    console.log(`Found ${documents.length} documents with MITC content`);
+    // Transform the web content into credit card data format
+    const creditCards: CreditCardVectorData[] = documents.map((doc, index) => {
+      // Extract credit card information from the content
+      const content = doc.content || "";
+      const source = doc.source || "";
+      
+      // Try to extract card information from content
+      const cardInfo = extractCardInfoFromContent(content);
+      
+      return {
+        id: String(doc._id || `card-${index}`),
+        cardName: cardInfo.cardName || `Credit Card ${index + 1}`,
+        issuer: cardInfo.issuer || "Various Banks",
+        cardType: cardInfo.cardType || "General",
+        annualFee: cardInfo.annualFee || 0,
+        rewardsRate: cardInfo.rewardsRate || { "general": "1% cashback" },
+        benefitsSummary: cardInfo.benefitsSummary || [content.substring(0, 200)],
+        $vectorize: content
+      };
+    });
     
-    return documents as CreditCardVectorData[];
+    console.log(`✅ Processed ${creditCards.length} credit cards from web content`);
+    return creditCards;
+    
   } catch (error) {
-    console.error("Error fetching credit cards with MITC:", error);
+    console.error("❌ Error fetching credit cards from AstraDB:", error);
     return [];
   }
+}
+
+// Helper function to extract card information from web content
+function extractCardInfoFromContent(content: string): Partial<CreditCardVectorData> {
+  const lowerContent = content.toLowerCase();
+  
+  // Try to identify card type
+  let cardType = "General";
+  if (lowerContent.includes("cashback") || lowerContent.includes("cash back")) {
+    cardType = "Cashback";
+  } else if (lowerContent.includes("travel") || lowerContent.includes("miles") || lowerContent.includes("points")) {
+    cardType = "Travel";
+  } else if (lowerContent.includes("business")) {
+    cardType = "Business";
+  } else if (lowerContent.includes("student")) {
+    cardType = "Student";
+  }
+  
+  // Try to extract issuer
+  let issuer = "Various Banks";
+  const bankNames = ["chase", "american express", "amex", "capital one", "citi", "discover", "bank of america", "wells fargo", "hdfc", "icici", "sbi"];
+  for (const bank of bankNames) {
+    if (lowerContent.includes(bank)) {
+      issuer = bank.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+      break;
+    }
+  }
+  
+  // Try to extract annual fee
+  let annualFee = 0;
+  const feeMatch = content.match(/\$(\d+)\s*annual\s*fee/i);
+  if (feeMatch) {
+    annualFee = parseInt(feeMatch[1]);
+  } else if (lowerContent.includes("no annual fee")) {
+    annualFee = 0;
+  }
+  
+  // Extract rewards rate as Record<string, string>
+  let rewardsRate: Record<string, string> = { "general": "Standard rewards" };
+  const rewardsMatch = content.match(/(\d+(?:\.\d+)?)[%x]\s*(cashback|cash back|points|miles)/i);
+  if (rewardsMatch) {
+    const rate = `${rewardsMatch[1]}${rewardsMatch[0].includes('%') ? '%' : 'x'} ${rewardsMatch[2]}`;
+    rewardsRate = { "general": rate };
+  }
+  
+  return {
+    cardType,
+    issuer,
+    annualFee,
+    rewardsRate: rewardsRate,
+    benefitsSummary: [content.substring(0, 200) + "..."]
+  };
 }
 
 /**
@@ -188,9 +258,9 @@ async function buildQueryFromProfile(profile: any): Promise<number[]> {
       5. Cards suitable for someone who travels ${profile.travelFrequency} and dines out ${profile.diningFrequency}
     `;
 
-    // Call OpenAI embedding API
+    // Call OpenAI embedding API - text-embedding-ada-002 returns 1536 dimensions
     const response = await openai.embeddings.create({
-      model: "text-embedding-ada-002", // This should produce 1024-dimensional vectors
+      model: "text-embedding-ada-002",
       input: profileText
     });
     
@@ -198,13 +268,25 @@ async function buildQueryFromProfile(profile: any): Promise<number[]> {
     const embedding = response.data[0].embedding;
     console.log(`Generated embedding vector of length ${embedding.length}`);
     
+    // Check if we have the expected dimension mismatch
+    if (embedding.length === 1536) {
+      console.log("OpenAI returned 1536-dimensional vector. AstraDB expects 1024 dimensions.");
+      console.log("Using truncation to match AstraDB collection dimensions.");
+      
+      // Truncate to 1024 dimensions to match AstraDB collection
+      const truncatedEmbedding = embedding.slice(0, 1024);
+      console.log(`Truncated embedding to ${truncatedEmbedding.length} dimensions`);
+      return truncatedEmbedding;
+    }
+    
+    // If dimensions already match, return as-is
     return embedding;
   } catch (error) {
     console.error("Error generating embedding:", error);
     
-    // Fallback to mock vector if embedding fails
-    console.log("Falling back to mock vector");
-    return Array(1536).fill(0).map(() => Math.random() - 0.5);
+    // Fallback to mock vector with correct dimensions (1024 for AstraDB)
+    console.log("Falling back to mock vector with 1024 dimensions");
+    return Array(1024).fill(0).map(() => Math.random() - 0.5);
   }
 }
 
@@ -258,7 +340,7 @@ export async function generateMITCBasedRecommendations(
 ): Promise<any[]> {
   try {
     // Get credit cards with MITC content
-    const cards = await getCreditCardsWithMITC(20);
+    const cards = await getCreditCardsWithMITC();
     
     if (cards.length === 0) {
       console.log("No cards with MITC content found");

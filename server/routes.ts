@@ -13,6 +13,7 @@ import { MongoDBStorage } from "./mongodb-storage";
 import { connectToMongoDB } from "./mongo-db";
 import { getRelevantCreditCards, CreditCardVectorData, generateMITCBasedRecommendations } from "./astra-db";
 import { ChatCompletionMessageParam } from "openai/resources";
+import { testPineconeConnection, createPineconeIndex, searchRelevantCards } from "./pinecone-db";
 
 // Check if we're using memory storage
 const useMemStorage = process.env.USE_MEM_STORAGE === 'true';
@@ -126,7 +127,7 @@ if (!apiKey || apiKey === 'mock-key' || apiKey === '') {
             choices: [
               {
                 message: {
-                  content: JSON.stringify(generateFallbackRecommendations({ annualIncome: 1000000, creditScore: 750, travelFrequency: 'occasionally', diningFrequency: 'occasionally', monthlySpending: {}, primarySpendingCategories: [], preferredBenefits: [] } as any))
+                  // content: JSON.stringify(generateFallbackRecommendations({ annualIncome: 1000000, creditScore: 750, travelFrequency: 'occasionally', diningFrequency: 'occasionally', monthlySpending: {}, primarySpendingCategories: [], preferredBenefits: [] } as any))
                 }
               }
             ]
@@ -899,18 +900,18 @@ Remember that this user is from India and your recommendations should be tailore
         } as any;
         
         // Generate fallback recommendations
-        const fallbackRecs = generateFallbackRecommendations(profile);
+        // const fallbackRecs = generateFallbackRecommendations(profile);
         
         // Add user ID and create
-        const recsWithUserId = fallbackRecs.map(rec => ({ ...rec, userId }));
-        const createdRecs = await storage.createCardRecommendations(recsWithUserId);
+        // const recsWithUserId = fallbackRecs.map(rec => ({ ...rec, userId }));
+        // const createdRecs = await storage.createCardRecommendations(recsWithUserId);
         
-        console.log(`[express] Created ${createdRecs.length} fallback recommendations for user ${userId}`);
+        // console.log(`[express] Created ${createdRecs.length} fallback recommendations for user ${userId}`);
         
-        return res.status(200).json({
-          message: "Created fallback recommendations",
-          recommendations: createdRecs
-        });
+        // return res.status(200).json({
+        //   message: "Created fallback recommendations",
+        //   recommendations: createdRecs
+        // });
       }
       
       res.status(200).json({
@@ -1170,7 +1171,7 @@ Remember that this user is from India and your recommendations should be tailore
         return res.status(200).json({ 
           authNeeded: true,
           message: "Authentication required",
-          recommendations: getFallbackRecommendations()
+          //recommendations: getFallbackRecommendations()
         });
       }
       
@@ -1193,7 +1194,7 @@ Remember that this user is from India and your recommendations should be tailore
         return res.status(200).json({
           userNotFound: true,
           message: "User not found",
-          recommendations: getFallbackRecommendations()
+          //recommendations: getFallbackRecommendations()
         });
       }
       
@@ -1205,7 +1206,7 @@ Remember that this user is from India and your recommendations should be tailore
         return res.status(200).json({ 
           profileNeeded: true,
           message: "Please fill out your financial profile first",
-          recommendations: getFallbackRecommendations()
+          //recommendations: getFallbackRecommendations()
         });
       }
       
@@ -1266,7 +1267,7 @@ Remember that this user is from India and your recommendations should be tailore
       return res.status(200).json({
         error: true,
         message: "Failed to generate recommendations",
-        recommendations: getFallbackRecommendations()
+        //recommendations: getFallbackRecommendations()
       });
     }
   });
@@ -1374,64 +1375,174 @@ Remember that this user is from India and your recommendations should be tailore
     }
   });
 
-  // Direct OpenAI recommendation endpoint - simple and focused
+  // Direct OpenAI recommendation endpoint with hybrid approach
   app.post("/api/direct-recommendation", async (req: Request, res: Response) => {
     try {
-      const { income, expenses, preferences } = req.body;
+      console.log("[HYBRID-RECOMMENDATION] Starting hybrid recommendation process...");
       
-      // Try to get user from session first
-      const userId = req.session.auth0Id || req.session.userId || req.headers['x-auth-user-id'];
-      let userProfile;
-      let profileData;
+      // Initialize storage
+      const storage = new MongoDBStorage();
       
-      // If user is authenticated, try to get their financial profile from MongoDB
-      if (userId && typeof userId === 'string') {
+      // Get user data from session or headers
+      const sessionUserId = req.session.userId;
+      const auth0Id = req.session.auth0Id;
+      
+      // Convert sessionUserId to number, defaulting to 0 if not available
+      let numericUserId = 0;
+      if (typeof sessionUserId === 'string') {
+        const parsed = parseInt(sessionUserId, 10);
+        numericUserId = isNaN(parsed) ? 0 : parsed;
+      } else if (typeof sessionUserId === 'number') {
+        numericUserId = sessionUserId;
+      }
+      
+      console.log("[HYBRID-RECOMMENDATION] User ID:", numericUserId, "Auth0 ID:", auth0Id);
+      
+      // Get user profile from MongoDB
+      let userProfile = null;
+      let profileData = null;
+      
+      if (numericUserId > 0 || auth0Id) {
         try {
-          await connectToMongoDB();
-          const mongoDBStorage = new MongoDBStorage();
-          const user = await mongoDBStorage.getUserByAuth0Id(userId);
-          
-          if (user?.financialProfile) {
-            console.log("[DIRECT-RECOMMENDATION] Found user financial profile:", user.financialProfile);
-            userProfile = user.financialProfile;
-            profileData = user.financialProfile; // Save to include in response
+          // Try to get user profile
+          if (auth0Id) {
+            const dbUser = await storage.getUserByAuth0Id(auth0Id);
+            if (dbUser) {
+              userProfile = await storage.getFinancialProfileByUserId(dbUser.id);
+              profileData = userProfile;
+              // Update numericUserId if we found the user
+              if (numericUserId === 0) {
+                numericUserId = dbUser.id;
+              }
+            }
+          } else if (numericUserId > 0) {
+            userProfile = await storage.getFinancialProfileByUserId(numericUserId);
+            profileData = userProfile;
           }
-        } catch (dbError) {
-          console.error("[DIRECT-RECOMMENDATION] Error fetching user profile from MongoDB:", dbError);
+        } catch (profileError) {
+          console.log("[HYBRID-RECOMMENDATION] Could not fetch user profile:", profileError);
         }
       }
       
+      // Get income from request body or profile
+      const { income, expenses, preferences } = req.body;
+      
+      // If no profile and no income provided, return error
       if (!userProfile && !income) {
-        return res.status(400).json({ error: "Annual income is required" });
+        return res.status(400).json({ 
+          error: "Annual income is required for recommendation",
+          message: "Please provide your annual income to get personalized credit card recommendations."
+        });
       }
       
-      console.log("[DIRECT-RECOMMENDATION] Received request:", { income, expenses, preferences });
+      // Create a complete profile for the hybrid approach
+      const completeProfile = {
+        userId: numericUserId || 1, // Use 1 as fallback for demo purposes
+        annualIncome: userProfile?.annualIncome || income || 1000000,
+        creditScore: userProfile?.creditScore || 750,
+        monthlySpending: userProfile?.monthlySpending || { dining: 5000, travel: 3000, shopping: 4000 },
+        primarySpendingCategories: userProfile?.primarySpendingCategories || ['dining', 'travel'],
+        travelFrequency: userProfile?.travelFrequency || 'occasionally',
+        diningFrequency: userProfile?.diningFrequency || 'occasionally',
+        preferredBenefits: userProfile?.preferredBenefits || ['cashback', 'rewards'],
+        preferredAirlines: userProfile?.preferredAirlines || [],
+        existingCards: userProfile?.existingCards || [],
+        shoppingHabits: userProfile?.shoppingHabits || { online: 50, inStore: 50 }
+      } as {
+        userId: number;
+        annualIncome: number;
+        creditScore: number;
+        monthlySpending: Record<string, number>;
+        primarySpendingCategories: string[];
+        travelFrequency: string;
+        diningFrequency: string;
+        preferredBenefits: string[];
+        preferredAirlines?: string[];
+        existingCards?: string[];
+        shoppingHabits?: { online: number; inStore: number };
+      };
       
-      // Determine what data to use - profile from DB or form input
-      const annualIncome = userProfile?.annualIncome || income;
-      const monthlyExpenses = userProfile?.monthlySpending?.groceries 
-        ? Object.values(userProfile.monthlySpending).reduce((sum, val) => sum + (typeof val === 'number' ? val : 0), 0) 
-        : expenses;
-      const userPreferences = userProfile?.preferredBenefits 
-        ? Array.isArray(userProfile.preferredBenefits) 
-          ? userProfile.preferredBenefits.join(", ") 
-          : userProfile.preferredBenefits
-        : preferences;
+      console.log("[HYBRID-RECOMMENDATION] Using profile:", completeProfile);
       
-      const primarySpendingCategories = userProfile?.primarySpendingCategories 
-        ? Array.isArray(userProfile.primarySpendingCategories)
-          ? userProfile.primarySpendingCategories.join(", ")
-          : userProfile.primarySpendingCategories
-        : "";
+      try {
+        // Try Pinecone-based recommendations first (using actual MITC documents)
+        console.log("[HYBRID-RECOMMENDATION] Attempting Pinecone-based recommendations...");
+        const { generatePineconeRecommendations } = await import("./pinecone-db");
         
-      // Create a prompt for OpenAI
-      const prompt = `
-As an expert credit card advisor for Indian users, recommend TWO credit cards based on the following information:
+        const pineconeRecommendations = await generatePineconeRecommendations({
+          ...completeProfile,
+          userId: String(completeProfile.userId) // Convert number to string for Pinecone
+        }, 7);
+        
+        if (pineconeRecommendations && pineconeRecommendations.length > 0) {
+          console.log(`[HYBRID-RECOMMENDATION] Successfully generated ${pineconeRecommendations.length} Pinecone recommendations`);
+          
+          const primaryRecommendation = pineconeRecommendations[0];
+          
+          const finalResponse = {
+            ...primaryRecommendation,
+            ...(profileData && { profileData }),
+            source: "pinecone_mitc_based",
+            totalRecommendations: pineconeRecommendations.length,
+            allRecommendations: pineconeRecommendations
+          };
+          
+          return res.status(200).json(finalResponse);
+        } else {
+          console.log("[HYBRID-RECOMMENDATION] No Pinecone recommendations, trying AstraDB...");
+        }
+      } catch (pineconeError) {
+        console.error("[HYBRID-RECOMMENDATION] Pinecone approach failed:", pineconeError);
+        console.log("[HYBRID-RECOMMENDATION] Falling back to AstraDB approach...");
+      }
+      
+      try {
+        // Fallback to AstraDB + OpenAI approach
+        const { generateMITCBasedRecommendations } = await import("./astra-db");
+        
+        console.log("[HYBRID-RECOMMENDATION] Calling generateMITCBasedRecommendations...");
+        const recommendations = await generateMITCBasedRecommendations(completeProfile, 3);
+        
+        if (recommendations && recommendations.length > 0) {
+          console.log(`[HYBRID-RECOMMENDATION] Successfully generated ${recommendations.length} AstraDB recommendations`);
+          
+          // Return the first recommendation (or all if you want multiple)
+          const primaryRecommendation = recommendations[0];
+          
+          // Add profile data to the response if available
+          const finalResponse = {
+            ...primaryRecommendation,
+            ...(profileData && { profileData }),
+            source: "hybrid_astradb_openai",
+            totalRecommendations: recommendations.length,
+            allRecommendations: recommendations // Include all recommendations
+          };
+          
+          return res.status(200).json(finalResponse);
+        } else {
+          console.log("[HYBRID-RECOMMENDATION] No recommendations from AstraDB approach, falling back to pure OpenAI");
+          throw new Error("No recommendations from AstraDB approach");
+        }
+        
+      } catch (hybridError) {
+        console.error("[HYBRID-RECOMMENDATION] Hybrid approach failed:", hybridError);
+        console.log("[HYBRID-RECOMMENDATION] Falling back to pure OpenAI approach...");
+        
+        // Fallback to pure OpenAI approach
+        const annualIncome = completeProfile.annualIncome;
+        const monthlyExpenses = Object.values(completeProfile.monthlySpending).reduce((sum, val) => sum + (typeof val === 'number' ? val : 0), 0) || (expenses || 0);
+        const userPreferences = completeProfile.preferredBenefits.join(", ");
+        const primarySpendingCategories = completeProfile.primarySpendingCategories.join(", ");
+        
+        const prompt = `
+As an expert credit card advisor for Indian users, recommend ONE credit card based on the following information:
 
 - Annual Income: ₹${annualIncome}
 - Monthly Expenses: ${monthlyExpenses ? `₹${monthlyExpenses}` : "Not specified"}
 - Preferences/Needs: ${userPreferences || "Not specified"}
-${primarySpendingCategories ? `- Primary Spending Categories: ${primarySpendingCategories}` : ""}
+- Primary Spending Categories: ${primarySpendingCategories}
+- Travel Frequency: ${completeProfile.travelFrequency}
+- Dining Frequency: ${completeProfile.diningFrequency}
 
 Provide a single credit card recommendation in the following JSON format:
 {
@@ -1451,71 +1562,62 @@ Provide a single credit card recommendation in the following JSON format:
 }
 
 Important: Return ONLY the JSON object with no additional text.`;
-      
-      // Call OpenAI API
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o", // Using GPT-4o for best recommendations
-        messages: [
-          {
-            role: "system",
-            content: "You are an expert financial advisor specializing in Indian credit cards. Provide accurate, helpful recommendations based on the user's financial profile."
-          },
-          {
-            role: "user",
-            content: prompt
+        
+        // Call OpenAI API as fallback
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert financial advisor specializing in Indian credit cards. Provide accurate, helpful recommendations based on the user's financial profile."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0.2,
+          max_tokens: 1000,
+          response_format: { type: "json_object" }
+        });
+        
+        const content = response.choices[0]?.message?.content || "{}";
+        console.log("[HYBRID-RECOMMENDATION] Fallback OpenAI response:", content);
+        
+        try {
+          const recommendation = JSON.parse(content);
+          
+          if (!recommendation.cardName || !recommendation.issuer) {
+            throw new Error("Invalid recommendation format");
           }
-        ],
-        temperature: 0.2, // Lower temperature for more consistency
-        max_tokens: 1000, // Enough tokens for a detailed recommendation
-        response_format: { type: "json_object" } // Ensure JSON response
-      });
-      
-      // Get the recommendation
-      const content = response.choices[0]?.message?.content || "{}";
-      console.log("[PROMPT] Prompt:", prompt);
-      console.log("[DIRECT-RECOMMENDATION] Raw OpenAI response:", content);
-      
-      try {
-        // Parse the recommendation
-        const recommendation = JSON.parse(content);
-        
-        // Ensure necessary fields exist
-        if (!recommendation.cardName || !recommendation.issuer) {
-          throw new Error("Invalid recommendation format");
+          
+          const finalResponse = {
+            ...recommendation,
+            ...(profileData && { profileData }),
+            source: "fallback_openai_only"
+          };
+          
+          return res.status(200).json(finalResponse);
+        } catch (parseError) {
+          console.error("[HYBRID-RECOMMENDATION] Parse error:", parseError);
+          return res.status(500).json({ error: "Failed to parse recommendation" });
         }
-        
-        // Add profile data to the response if available
-        const finalResponse = {
-          ...recommendation,
-          ...(profileData && { profileData }) // Include profile data if available
-        };
-        
-        // Return the recommendation with profile data
-        return res.status(200).json(finalResponse);
-      } catch (parseError) {
-        console.error("[DIRECT-RECOMMENDATION] Parse error:", parseError);
-        return res.status(500).json({ error: "Failed to parse recommendation" });
       }
+      
     } catch (error) {
-      console.error("[DIRECT-RECOMMENDATION] Error:", error);
-      return res.status(500).json({ error: "Failed to get recommendation" });
+      console.error("[HYBRID-RECOMMENDATION] Error:", error);
+      return res.status(500).json({ 
+        error: "Failed to get recommendation",
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
   // Test endpoint for AstraDB
   app.get("/api/test-astra", async (req: Request, res: Response) => {
     try {
-      const profile = {
-        annualIncome: 1200000,
-        creditScore: 750,
-        primarySpendingCategories: ["travel", "dining"],
-        travelFrequency: "frequently",
-        diningFrequency: "frequently",
-        preferredBenefits: ["cashback", "airport_lounge"]
-      };
-      
       const astraDb = await import("./astra-db");
-      const cards = await astraDb.getRelevantCreditCards(profile);
+      const cards = await astraDb.getCreditCardsWithMITC();
       
       res.json({ 
         success: true, 
@@ -1528,6 +1630,122 @@ Important: Return ONLY the JSON object with no additional text.`;
         success: false, 
         error: String(error),
         message: "Failed to query AstraDB"
+      });
+    }
+  });
+
+  // Test endpoint for Pinecone
+  app.get("/api/test-pinecone", async (req: Request, res: Response) => {
+    try {
+      const result = await testPineconeConnection();
+      res.json(result);
+    } catch (error) {
+      console.error("Error in test-pinecone endpoint:", error);
+      res.json({ 
+        success: false, 
+        error: String(error),
+        message: "Failed to connect to Pinecone"
+      });
+    }
+  });
+
+  // Test endpoint for Pinecone cards
+  app.get("/api/test-pinecone-cards", async (req: Request, res: Response) => {
+    try {
+      const { searchRelevantCards } = await import("./pinecone-db");
+      
+      const testProfile = {
+        annualIncome: 1200000,
+        creditScore: 750,
+        primarySpendingCategories: ["dining", "travel"],
+        travelFrequency: "frequently",
+        diningFrequency: "frequently",
+        preferredBenefits: ["travel rewards", "lounge access"]
+      };
+      
+      const cards = await searchRelevantCards(testProfile, 10);
+      
+      res.json({
+        success: true,
+        totalCards: cards.length,
+        cards: cards.map(card => ({
+          id: card.id,
+          cardName: card.cardName,
+          issuer: card.issuer,
+          cardType: card.cardType,
+          annualFee: card.annualFee
+        }))
+      });
+    } catch (error) {
+      console.error("Error testing Pinecone cards:", error);
+      res.json({ 
+        success: false, 
+        error: String(error),
+        message: "Failed to retrieve cards from Pinecone"
+      });
+    }
+  });
+
+  // Create Pinecone index endpoint
+  app.post("/api/create-pinecone-index", async (req: Request, res: Response) => {
+    try {
+      await createPineconeIndex();
+      res.json({ 
+        success: true, 
+        message: "Pinecone index created successfully"
+      });
+    } catch (error) {
+      console.error("Error creating Pinecone index:", error);
+      res.json({ 
+        success: false, 
+        error: String(error),
+        message: "Failed to create Pinecone index"
+      });
+    }
+  });
+
+  // Test endpoint to get all cards from Pinecone
+  app.get('/api/test-all-cards', async (req, res) => {
+    try {
+      console.log('🧪 Testing getAllCardsFromPinecone function...');
+      const { getAllCardsFromPinecone } = await import('./pinecone-db');
+      const allCards = await getAllCardsFromPinecone();
+      
+      console.log(`📊 getAllCardsFromPinecone returned ${allCards.length} cards`);
+      
+      res.json({
+        success: true,
+        totalCards: allCards.length,
+        cards: allCards.map(card => ({
+          cardName: card.cardName,
+          issuer: card.issuer,
+          cardType: card.cardType,
+          annualFee: card.annualFee
+        }))
+      });
+    } catch (error) {
+      console.error('❌ Error testing getAllCardsFromPinecone:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
+  });
+
+  // Test endpoint to check environment variables
+  app.get('/api/test-env', async (req, res) => {
+    try {
+      res.json({
+        success: true,
+        openaiKeyExists: !!process.env.OPENAI_API_KEY,
+        openaiKeyLength: process.env.OPENAI_API_KEY?.length || 0,
+        pineconeKeyExists: !!process.env.PINECONE_API_KEY,
+        pineconeIndexName: process.env.PINECONE_INDEX_NAME || 'not set'
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
       });
     }
   });
@@ -1850,14 +2068,14 @@ async function generateCardRecommendations(userId: number, profile: FinancialPro
             };
             
             // Generate fallback recommendations
-            const fallbackRecs = generateFallbackRecommendations(fallbackProfile as FinancialProfile);
+            //const fallbackRecs = generateFallbackRecommendations(fallbackProfile as FinancialProfile);
             
             // Add fallback recommendations to reach targetCount
-            for (let i = recommendations.length; i < targetCount; i++) {
-              if (fallbackRecs[i - recommendations.length]) {
-                recommendations.push(fallbackRecs[i - recommendations.length]);
-              }
-            }
+            // for (let i = recommendations.length; i < targetCount; i++) {
+            //   if (fallbackRecs[i - recommendations.length]) {
+            //     recommendations.push(fallbackRecs[i - recommendations.length]);
+            //   }
+            // }
           }
           
           // Format recommendations for storage
@@ -1892,32 +2110,32 @@ async function generateCardRecommendations(userId: number, profile: FinancialPro
         } catch (parseError) {
           console.error("Error parsing OpenAI response:", parseError);
           // Generate and save fallback recommendations
-          const fallbackRecs = generateFallbackRecommendations(profile as FinancialProfile);
-          await storage.createCardRecommendations(fallbackRecs.map(rec => ({
-            userId: userId,
-            ...rec
-          })));
-          console.log(`Saved ${fallbackRecs.length} fallback credit card recommendations for user ${userId}`);
+          // const fallbackRecs = generateFallbackRecommendations(profile as FinancialProfile);
+          // await storage.createCardRecommendations(fallbackRecs.map(rec => ({
+          //   userId: userId,
+          //   ...rec
+          // })));
+          // console.log(`Saved ${fallbackRecs.length} fallback credit card recommendations for user ${userId}`);
         }
       } catch (openaiError) {
         console.error("Error calling OpenAI API:", openaiError);
         // Generate and save fallback recommendations
-        const fallbackRecs = generateFallbackRecommendations(profile as FinancialProfile);
-        await storage.createCardRecommendations(fallbackRecs.map(rec => ({
-          userId: userId,
-          ...rec
-        })));
-        console.log(`Saved ${fallbackRecs.length} fallback credit card recommendations for user ${userId}`);
+        // const fallbackRecs = generateFallbackRecommendations(profile as FinancialProfile);
+        // await storage.createCardRecommendations(fallbackRecs.map(rec => ({
+        //   userId: userId,
+        //   ...rec
+        // })));
+        // console.log(`Saved ${fallbackRecs.length} fallback credit card recommendations for user ${userId}`);
       }
     } else {
       console.log("No cards found in AstraDB, using fallback recommendations");
       // Generate and save fallback recommendations
-      const fallbackRecs = generateFallbackRecommendations(profile as FinancialProfile);
-      await storage.createCardRecommendations(fallbackRecs.map(rec => ({
-        userId: userId,
-        ...rec
-      })));
-      console.log(`Saved ${fallbackRecs.length} fallback credit card recommendations for user ${userId}`);
+      // const fallbackRecs = generateFallbackRecommendations(profile as FinancialProfile);
+      // await storage.createCardRecommendations(fallbackRecs.map(rec => ({
+      //   userId: userId,
+      //   ...rec
+      // })));
+      // console.log(`Saved ${fallbackRecs.length} fallback credit card recommendations for user ${userId}`);
     }
   } catch (error) {
     console.error("Error generating card recommendations:", error);
@@ -1926,185 +2144,185 @@ async function generateCardRecommendations(userId: number, profile: FinancialPro
 }
 
 // Fallback recommendations function when OpenAI API fails
-function generateFallbackRecommendations(profile: FinancialProfile) {
-  // Check if profile has travel as a preference
-  const prefersTravelRewards = Array.isArray(profile.preferredBenefits) && 
-    profile.preferredBenefits.some(b => b.includes('travel'));
+// function generateFallbackRecommendations(profile: FinancialProfile) {
+//   // Check if profile has travel as a preference
+//   const prefersTravelRewards = Array.isArray(profile.preferredBenefits) && 
+//     profile.preferredBenefits.some(b => b.includes('travel'));
     
-  // Check if profile has cashback as a preference
-  const prefersCashback = Array.isArray(profile.preferredBenefits) && 
-    profile.preferredBenefits.some(b => b.includes('cash'));
+//   // Check if profile has cashback as a preference
+//   const prefersCashback = Array.isArray(profile.preferredBenefits) && 
+//     profile.preferredBenefits.some(b => b.includes('cash'));
     
-  // Check if profile has frequent travel
-  const frequentTraveler = profile.travelFrequency === 'frequently';
+//   // Check if profile has frequent travel
+//   const frequentTraveler = profile.travelFrequency === 'frequently';
   
-  // Select relevant cards based on preferences
-  const recommendations = [];
+//   // Select relevant cards based on preferences
+//   const recommendations = [];
   
-  // Add travel card if user prefers travel
-  if (prefersTravelRewards || frequentTraveler) {
-    recommendations.push({
-      cardName: "HDFC Diners Club Black",
-      issuer: "HDFC Bank",
-      cardType: "Travel Rewards",
-      annualFee: "10000",
-      rewardsRate: {
-        dining: "10X rewards",
-        travel: "10X rewards",
-        groceries: "5X rewards",
-        other: "1X rewards"
-      },
-      signupBonus: "10,000 reward points on spending ₹50,000 in first 90 days",
-      benefitsSummary: [
-        "Airport lounge access worldwide",
-        "Milestone benefits up to ₹10,000",
-        "10X rewards on select merchants",
-        "Golf privileges at courses across India"
-      ],
-      primaryBenefits: ["Travel Rewards", "Premium Lounges"],
-      matchScore: frequentTraveler ? 95 : 85,
-      matchReason: "High rewards on travel and dining with premium travel benefits",
-      imageUrl: "https://www.hdfcbank.com/content/api/contentstream-id/723fb80a-2dde-42a3-9793-7ae1be57c87f/f1f4db7a-e60e-4753-9e5b-96c47010fc91/Personal/Pay/Cards/Credit-Cards/Diners-Black/Banner/Diners_Black.jpg",
-      applyUrl: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/diners-club-black"
-    });
-  }
+//   // Add travel card if user prefers travel
+//   if (prefersTravelRewards || frequentTraveler) {
+//     recommendations.push({
+//       cardName: "HDFC Diners Club Black",
+//       issuer: "HDFC Bank",
+//       cardType: "Travel Rewards",
+//       annualFee: "10000",
+//       rewardsRate: {
+//         dining: "10X rewards",
+//         travel: "10X rewards",
+//         groceries: "5X rewards",
+//         other: "1X rewards"
+//       },
+//       signupBonus: "10,000 reward points on spending ₹50,000 in first 90 days",
+//       benefitsSummary: [
+//         "Airport lounge access worldwide",
+//         "Milestone benefits up to ₹10,000",
+//         "10X rewards on select merchants",
+//         "Golf privileges at courses across India"
+//       ],
+//       primaryBenefits: ["Travel Rewards", "Premium Lounges"],
+//       matchScore: frequentTraveler ? 95 : 85,
+//       matchReason: "High rewards on travel and dining with premium travel benefits",
+//       imageUrl: "https://www.hdfcbank.com/content/api/contentstream-id/723fb80a-2dde-42a3-9793-7ae1be57c87f/f1f4db7a-e60e-4753-9e5b-96c47010fc91/Personal/Pay/Cards/Credit-Cards/Diners-Black/Banner/Diners_Black.jpg",
+//       applyUrl: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/diners-club-black"
+//     });
+//   }
   
-  // Add cashback card if user prefers cashback
-  if (prefersCashback || !prefersTravelRewards) {
-    recommendations.push({
-      cardName: "Amazon Pay ICICI Bank Credit Card",
-      issuer: "ICICI Bank",
-      cardType: "Cashback",
-      annualFee: "0",
-      rewardsRate: {
-        dining: "2% back",
-        travel: "2% back",
-        groceries: "2% back",
-        other: "1% back",
-        amazon: "5% back"
-      },
-      signupBonus: "₹500 Amazon Pay balance as welcome benefit",
-      benefitsSummary: [
-        "5% cashback on Amazon.in",
-        "2% cashback on Amazon Pay partner merchants",
-        "1% cashback on all other spends",
-        "No annual fee or joining fee"
-      ],
-      primaryBenefits: ["Cashback", "No Annual Fee"],
-      matchScore: prefersCashback ? 90 : 80,
-      matchReason: "Strong cashback benefits with no annual fee",
-      imageUrl: "https://m.media-amazon.com/images/G/31/payments-portal/r1/issuer-images/icici-bank-cc-new._CB632974078_.jpg",
-      applyUrl: "https://www.amazon.in/amazonpay/icicicard"
-    });
-  }
+//   // Add cashback card if user prefers cashback
+//   if (prefersCashback || !prefersTravelRewards) {
+//     recommendations.push({
+//       cardName: "Amazon Pay ICICI Bank Credit Card",
+//       issuer: "ICICI Bank",
+//       cardType: "Cashback",
+//       annualFee: "0",
+//       rewardsRate: {
+//         dining: "2% back",
+//         travel: "2% back",
+//         groceries: "2% back",
+//         other: "1% back",
+//         amazon: "5% back"
+//       },
+//       signupBonus: "₹500 Amazon Pay balance as welcome benefit",
+//       benefitsSummary: [
+//         "5% cashback on Amazon.in",
+//         "2% cashback on Amazon Pay partner merchants",
+//         "1% cashback on all other spends",
+//         "No annual fee or joining fee"
+//       ],
+//       primaryBenefits: ["Cashback", "No Annual Fee"],
+//       matchScore: prefersCashback ? 90 : 80,
+//       matchReason: "Strong cashback benefits with no annual fee",
+//       imageUrl: "https://m.media-amazon.com/images/G/31/payments-portal/r1/issuer-images/icici-bank-cc-new._CB632974078_.jpg",
+//       applyUrl: "https://www.amazon.in/amazonpay/icicicard"
+//     });
+//   }
   
-  // Add a premium card for high income profiles
-  if (Number(profile.annualIncome) >= 1000000) {
-    recommendations.push({
-      cardName: "HDFC Infinia",
-      issuer: "HDFC Bank",
-      cardType: "Premium Rewards",
-      annualFee: "12500",
-      rewardsRate: {
-        dining: "5X rewards",
-        travel: "5X rewards",
-        groceries: "3X rewards",
-        other: "3X rewards"
-      },
-      signupBonus: "10,000 reward points on first spend",
-      benefitsSummary: [
-        "Unlimited airport lounge access",
-        "Reward points never expire",
-        "Premium concierge services",
-        "Milestone benefits up to ₹20,000 annually"
-      ],
-      primaryBenefits: ["Premium Services", "Travel Benefits"],
-      matchScore: 88,
-      matchReason: "Premium card with excellent rewards suited for your income level",
-      imageUrl: "https://www.hdfcbank.com/content/api/contentstream-id/723fb80a-2dde-42a3-9793-7ae1be57c87f/ae05df62-4c24-4615-8800-de4d004b5095/Common/HDFC%20cards/infinia-credit-card-image.jpg",
-      applyUrl: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card"
-    });
-  }
+//   // Add a premium card for high income profiles
+//   if (Number(profile.annualIncome) >= 1000000) {
+//     recommendations.push({
+//       cardName: "HDFC Infinia",
+//       issuer: "HDFC Bank",
+//       cardType: "Premium Rewards",
+//       annualFee: "12500",
+//       rewardsRate: {
+//         dining: "5X rewards",
+//         travel: "5X rewards",
+//         groceries: "3X rewards",
+//         other: "3X rewards"
+//       },
+//       signupBonus: "10,000 reward points on first spend",
+//       benefitsSummary: [
+//         "Unlimited airport lounge access",
+//         "Reward points never expire",
+//         "Premium concierge services",
+//         "Milestone benefits up to ₹20,000 annually"
+//       ],
+//       primaryBenefits: ["Premium Services", "Travel Benefits"],
+//       matchScore: 88,
+//       matchReason: "Premium card with excellent rewards suited for your income level",
+//       imageUrl: "https://www.hdfcbank.com/content/api/contentstream-id/723fb80a-2dde-42a3-9793-7ae1be57c87f/ae05df62-4c24-4615-8800-de4d004b5095/Common/HDFC%20cards/infinia-credit-card-image.jpg",
+//       applyUrl: "https://www.hdfcbank.com/personal/pay/cards/credit-cards/infinia-credit-card"
+//     });
+//   }
   
-  // Ensure we have at least 3 recommendations
-  if (recommendations.length < 3) {
-    recommendations.push({
-      cardName: "SBI SimplyCLICK Credit Card",
-      issuer: "State Bank of India",
-      cardType: "Online Shopping Rewards",
-      annualFee: "499",
-      rewardsRate: {
-        dining: "1% back",
-        travel: "1% back",
-        groceries: "1% back",
-        other: "1% back",
-        online: "5X rewards"
-      },
-      signupBonus: "₹500 worth of Amazon gift voucher on joining",
-      benefitsSummary: [
-        "5X rewards on all online spends",
-        "1% fuel surcharge waiver",
-        "eGift vouchers on milestone spends",
-        "Movie ticket discounts"
-      ],
-      primaryBenefits: ["Online Shopping Rewards", "Low Annual Fee"],
-      matchScore: 75,
-      matchReason: "Good for online shopping with reasonable annual fee",
-      imageUrl: "https://www.sbicard.com/sbi-card-en/assets/media/images/personal/credit-cards/shopping/simplyclick-sbi-card/simplyclick-credit-card.jpg",
-      applyUrl: "https://www.sbicard.com/en/personal/credit-cards/shopping/simplyclick-sbi-card.page"
-    });
-  }
+//   // Ensure we have at least 3 recommendations
+//   if (recommendations.length < 3) {
+//     recommendations.push({
+//       cardName: "SBI SimplyCLICK Credit Card",
+//       issuer: "State Bank of India",
+//       cardType: "Online Shopping Rewards",
+//       annualFee: "499",
+//       rewardsRate: {
+//         dining: "1% back",
+//         travel: "1% back",
+//         groceries: "1% back",
+//         other: "1% back",
+//         online: "5X rewards"
+//       },
+//       signupBonus: "₹500 worth of Amazon gift voucher on joining",
+//       benefitsSummary: [
+//         "5X rewards on all online spends",
+//         "1% fuel surcharge waiver",
+//         "eGift vouchers on milestone spends",
+//         "Movie ticket discounts"
+//       ],
+//       primaryBenefits: ["Online Shopping Rewards", "Low Annual Fee"],
+//       matchScore: 75,
+//       matchReason: "Good for online shopping with reasonable annual fee",
+//       imageUrl: "https://www.sbicard.com/sbi-card-en/assets/media/images/personal/credit-cards/shopping/simplyclick-sbi-card/simplyclick-credit-card.jpg",
+//       applyUrl: "https://www.sbicard.com/en/personal/credit-cards/shopping/simplyclick-sbi-card.page"
+//     });
+//   }
   
-  return recommendations;
-}
+//   return recommendations;
+// }
 
 // Add this helper function at the end of the file
-function getFallbackRecommendations() {
-  return [
-    {
-      cardName: "HDFC Diners Club Black",
-      issuer: "HDFC Bank",
-      cardType: "Travel Rewards",
-      annualFee: "10000",
-      rewardsRate: {
-        dining: "10X rewards",
-        travel: "10X rewards",
-        groceries: "5X rewards",
-        other: "1X rewards"
-      },
-      signupBonus: "10,000 reward points on spending ₹50,000 in first 90 days",
-      benefitsSummary: [
-        "Airport lounge access worldwide",
-        "Milestone benefits up to ₹10,000",
-        "10X rewards on select merchants",
-        "Golf privileges at courses across India"
-      ],
-      primaryBenefits: ["Travel Rewards", "Premium Lounges"],
-      matchScore: 95,
-      matchReason: "High rewards on travel and dining with premium travel benefits"
-    },
-    {
-      cardName: "Amazon Pay ICICI Bank Credit Card",
-      issuer: "ICICI Bank",
-      cardType: "Cashback",
-      annualFee: "0",
-      rewardsRate: {
-        dining: "2% back",
-        travel: "2% back",
-        groceries: "2% back",
-        other: "1% back",
-        amazon: "5% back"
-      },
-      signupBonus: "₹500 Amazon Pay balance as welcome benefit",
-      benefitsSummary: [
-        "5% cashback on Amazon.in",
-        "2% cashback on Amazon Pay partner merchants",
-        "1% cashback on all other spends",
-        "No annual fee or joining fee"
-      ],
-      primaryBenefits: ["Cashback", "No Annual Fee"],
-      matchScore: 90,
-      matchReason: "Strong cashback benefits with no annual fee"
-    }
-  ];
-}
+// function getFallbackRecommendations() {
+//   return [
+//     {
+//       cardName: "HDFC Diners Club Black",
+//       issuer: "HDFC Bank",
+//       cardType: "Travel Rewards",
+//       annualFee: "10000",
+//       rewardsRate: {
+//         dining: "10X rewards",
+//         travel: "10X rewards",
+//         groceries: "5X rewards",
+//         other: "1X rewards"
+//       },
+//       signupBonus: "10,000 reward points on spending ₹50,000 in first 90 days",
+//       benefitsSummary: [
+//         "Airport lounge access worldwide",
+//         "Milestone benefits up to ₹10,000",
+//         "10X rewards on select merchants",
+//         "Golf privileges at courses across India"
+//       ],
+//       primaryBenefits: ["Travel Rewards", "Premium Lounges"],
+//       matchScore: 95,
+//       matchReason: "High rewards on travel and dining with premium travel benefits"
+//     },
+//     {
+//       cardName: "Amazon Pay ICICI Bank Credit Card",
+//       issuer: "ICICI Bank",
+//       cardType: "Cashback",
+//       annualFee: "0",
+//       rewardsRate: {
+//         dining: "2% back",
+//         travel: "2% back",
+//         groceries: "2% back",
+//         other: "1% back",
+//         amazon: "5% back"
+//       },
+//       signupBonus: "₹500 Amazon Pay balance as welcome benefit",
+//       benefitsSummary: [
+//         "5% cashback on Amazon.in",
+//         "2% cashback on Amazon Pay partner merchants",
+//         "1% cashback on all other spends",
+//         "No annual fee or joining fee"
+//       ],
+//       primaryBenefits: ["Cashback", "No Annual Fee"],
+//       matchScore: 90,
+//       matchReason: "Strong cashback benefits with no annual fee"
+//     }
+//   ];
+// }
