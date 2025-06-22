@@ -77,5 +77,3 @@ When running in memory mode, you can log in with:
 - Log in to view personalized recommendations 
 =======
 - Log in to view personalized recommendations 
-okkk
->>>>>>> 682a5660904463748ee106a5350f9530cc747365
