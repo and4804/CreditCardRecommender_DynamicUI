@@ -73,7 +73,5 @@ When running in memory mode, you can log in with:
 - Browse flight options
 - View card rewards benefits
 - Filter flights by various criteria
-<<<<<<< HEAD
-- Log in to view personalized recommendations 
-=======
+- Log in to view personalized recommendations
 - Log in to view personalized recommendations 
